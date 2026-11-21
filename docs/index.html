@@ -335,6 +335,10 @@ body{font-size:18px}
 /* the Record list in the main menu: compact rows, scrolls inside the window (no visible scrollbar) */
 #dlgb .rec{max-height:min(62vh,520px);overflow-y:auto;scrollbar-width:none;margin:0}#dlgb .rec::-webkit-scrollbar{display:none}
 #dlgb .rec .str{display:flex;justify-content:space-between;gap:10px;padding:4px 8px;font-size:15px;border-bottom:1px solid #1b281e}#dlgb .rec .str em{color:#8a8670;font-style:normal;font-size:13px}
+
+/* the Paladin line stays at the top of the Stats screen while the rest scrolls under it, like the talent tree picker */
+#pk-stats .sth,#stwb .sth{position:sticky;top:0;z-index:4;background:#040605;padding:4px 0 6px;box-shadow:0 6px 8px -6px #000}
+#stwb .sth{top:-8px;margin-top:-8px;padding-top:8px;background:#070a08}
 </style>
 </head>
 <body>
@@ -366,7 +370,7 @@ let SIM_OUTER=false;
       info.textContent=d[1]?`${w}×${h}${s!==1?' · shown at '+Math.round(s*100)+'%':''}`:'';f.focus()}
     addEventListener('resize',apply);apply()})})();
 </script>
-<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.24.3</div>
+<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.25.0</div>
   <div id="view">
     <canvas id="cv"></canvas>
     <div id="hud">
@@ -691,8 +695,8 @@ Object.assign(BTYPES,{
   burntfarm:{name:'Burnt Farmstead',fw:5,fh:3,iw:18,ih:14,rooms:3,mat:'wood',style:'ruin',col:['#3a3028','#221c16','#2a2018','#16100c'],furn:['bed','table','chair','fireplace','crate','barrel'],mobs:['brigand','houndpack']},
   tollhouse:{name:'Toll House',fw:4,fh:2,iw:12,ih:10,rooms:1,mat:'stone',style:'lean',col:['#8a8270','#5e5848','#4a2a1e','#2e1a12'],furn:['counter','table','chair','crate','shelf'],mobs:['band']}});
 const BLDC={};
-function bldSprite(bt){if(BLDC[bt])return BLDC[bt];const b=BTYPES[bt],w=b.fw*16,h=(b.fh+2)*16+(b.style==='tower'?16:0)+(b.style==='steeple'?14:0),c=cvs(w,h),x=c.getContext('2d'),R=(col,a,bb,cw,ch)=>{x.fillStyle=col;x.fillRect(a|0,bb|0,cw,ch)};
-  const[wall,wallD,roof,roofD]=b.col,stilt=b.style==='stilt'?8:0,base=h-stilt,wallH=b.style==='tower'?b.fh*16+22:b.style==='ruin'?b.fh*16-10:b.fh*16-2,top=base-wallH;
+function bldSprite(bt){if(BLDC[bt])return BLDC[bt];const b=BTYPES[bt],w=b.fw*16,h=(b.fh+2)*16+(b.style==='tower'?16:0)+(b.style==='steeple'?14:0)+(b.style==='ruin'?26:0)+(b.style==='lean'?8:0),c=cvs(w,h),x=c.getContext('2d'),R=(col,a,bb,cw,ch)=>{x.fillStyle=col;x.fillRect(a|0,bb|0,cw,ch)};
+  const[wall,wallD,roof,roofD]=b.col,stilt=b.style==='stilt'?8:0,base=h-stilt,wallH=b.style==='tower'?b.fh*16+22:b.style==='ruin'?b.fh*16+14:b.style==='lean'?b.fh*16+4:b.fh*16-2,top=base-wallH;
   if(stilt){for(const sx of[3,w/2-1,w-6])R('#1a120a',sx,base-2,3,stilt+2)}
   R('#050403',0,top-1,w,wallH+1);R(wall,1,top,w-2,wallH-1);
   if(b.mat==='wood')for(let yy=top+3;yy<base;yy+=4)R(wallD,1,yy,w-2,1);
@@ -703,13 +707,16 @@ function bldSprite(bt){if(BLDC[bt])return BLDC[bt];const b=BTYPES[bt],w=b.fw*16,
   else if(b.style==='flat'){R('#050403',-1,top-5,w+2,7);R(roof,0,top-4,w,5);R(roofD,0,top,w,1)}
   else if(b.style==='tower'){for(let xx=0;xx<w;xx+=8){R('#050403',xx,top-6,5,7);R(wall,xx+1,top-5,3,6)}R('#0a0806',w/2-2,top+12,4,7);R('#0a0806',w/2-2,top+30,4,7)}
   else if(b.style==='mill'){roofTri(Math.max(0,top-18),top+3,1)}
-  else if(b.style==='ruin'){/* no roof: the wall-tops broken off unevenly, a dark edge where they broke, rubble at the foot */let hh=2;for(let xx=0;xx<w;xx+=3){hh=Math.max(0,Math.min(12,hh+((xx*7919+bt.length*31)%7)-3));x.clearRect(xx,top-1,3,hh+1);R('#050403',xx,top+hh,3,1);R(wallD,xx,top+hh+1,3,1)}
+  else if(b.style==='ruin'){/* no roof: a broken gable end still standing in the middle, the rest of the wall-tops broken off unevenly, rubble at the foot */
+    {const gw=Math.round(w*.55),gx=Math.round(w/2-gw/2),gh=24;for(let yy=0;yy<gh;yy++){const hw=Math.round((yy+1)/gh*gw/2);R('#050403',w/2-hw-1,top-gh+yy,hw*2+2,1);R(wall,w/2-hw,top-gh+yy,hw*2,1)}
+      if(b.mat!=='wood')for(let yy=top-gh+6;yy<top;yy+=5)R(wallD,w/2-gw/2,yy,gw,1);R('#050403',w/2-3,top-15,6,10);R('#0a0806',w/2-2,top-14,4,9);R('#050403',gx,top-1,gw,1)}
+    let hh=2;for(let xx=0;xx<w;xx+=3){if(Math.abs(xx+1.5-w/2)<w*.27)continue;hh=Math.max(0,Math.min(14,hh+((xx*7919+bt.length*31)%7)-3));x.clearRect(xx,top-1,3,hh+1);R('#050403',xx,top+hh,3,1);R(wallD,xx,top+hh+1,3,1)}
     for(let xx=3;xx<w-3;xx+=7){R('#050403',xx-1,base-3,5,3);R(wallD,xx,base-3,3,2);R(wall,xx,base-3,2,1)}}
-  else if(b.style==='lean'){/* a single slope, high at the back */for(let yy=0;yy<14;yy++){const x0=Math.round((yy+1)*w/14);R('#050403',0,top-14+yy,x0+1,1);R(yy%3===0?roofD:roof,0,top-14+yy,x0-1,1)}R('#050403',0,top,w,1)}
+  else if(b.style==='lean'){/* a single slope, high at the back, running down past the front wall */for(let yy=0;yy<20;yy++){const x0=Math.min(w,Math.round(w*.25+(yy+1)*w*.75/20));R('#050403',0,top-18+yy,x0+1,1);R(yy%3===0?roofD:roof,0,top-18+yy,x0-1,1)}R('#050403',0,top+2,w,1)}
   else if(b.style==='round'){/* a cone of thatch */roofTri(Math.max(0,top-22),top+5,4);for(let yy=top-14;yy<top+4;yy+=3)R(roofD,w/2-6,yy,12,1)}
   if(b.chim){R('#050403',w-14,top-20,7,16);R(wallD==='#2e1c10'?'#4a4642':'#5a5650',w-13,top-19,5,14)}
   if(b.style!=='tower'&&b.style!=='mill'){const wy=top+8;R('#050403',6,wy,7,7);R('#0e1014',7,wy+1,5,5);R(wallD,9,wy+1,1,5);R('#050403',w-13,wy,7,7);R('#0e1014',w-12,wy+1,5,5);R(wallD,w-10,wy+1,1,5)}
-  const dw=b.fw>=5?12:10,dh=b.fw>=5?16:14;R('#050403',w/2-dw/2-1,base-dh-1,dw+2,dh+1);R('#1a0e06',w/2-dw/2,base-dh,dw,dh);R('#3a2414',w/2-dw/2+1,base-dh+1,dw-2,dh-1);R('#2a1a0c',w/2-1,base-dh+1,1,dh-1);R('#c9a24b',w/2+dw/2-3,base-dh/2,1,2);
+  const dw=b.fw>=5?12:10,dh=b.fw>=5?16:14,dc=(b.fw>>1)*16+8;R('#050403',dc-dw/2-1,base-dh-1,dw+2,dh+1);R('#1a0e06',dc-dw/2,base-dh,dw,dh);R('#3a2414',dc-dw/2+1,base-dh+1,dw-2,dh-1);R('#2a1a0c',dc-1,base-dh+1,1,dh-1);R('#c9a24b',dc+dw/2-3,base-dh/2,1,2);
   return BLDC[bt]=c}
 /* v8.3 clickables */
 PS.idol=mk(12,18,(f)=>{f('#050505',2,3,8,15);f('#1e1c22',3,4,6,13);f('#2e2a34',4,5,4,4);f('#c83a2a',4,6,1,1);f('#c83a2a',7,6,1,1);f('#141218',4,10,4,2);f('#3a3640',3,14,6,1);f('#050505',1,16,10,2);f('#2a2830',2,16,8,1)});
@@ -869,7 +876,7 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
     for(let c=0;c<1+(r()<.6?1:0);c++){const[sx,sy,a]=edgeStart();meander(sx,sy,a+(r()-.5)*.6,260,(x,y)=>{for(const[a2,b2]of[[0,0],[1,0],[0,1],[1,1]]){const q=id(x+a2,y+b2);if(x+a2<MW-2&&y+b2<MH-2)map[q]=WATER}})}}
   if(ty==='cave'){for(let y=4;y<MH-4;y++)for(let x=4;x<MW-4;x++){const v=N1(x/7+11,y/7+3)*.7+N2(x/3,y/3)*.3;if(v>.6)map[id(x,y)]=G}
     {const[sx,sy,a]=edgeStart();meander(sx,sy,a+(r()-.5)*.6,240,(x,y)=>{for(const[a2,b2]of[[0,0],[1,0],[0,1],[1,1]])if(x+a2<MW-2&&y+b2<MH-2)map[id(x+a2,y+b2)]=WATER})}}
-  if(ty==='plains')for(let k=0;k<16;k++){let x=6+r()*(ZS-12),y=6+r()*(ZS-12);const horiz=r()<.5,len=6+((r()*12)|0),stone=r()<.35;for(let i=0;i<len;i++){const ix=Math.round(x),iy=Math.round(y);if(map[id(ix,iy)]===G)map[id(ix,iy)]=stone?ROCKT:OAK;if(horiz)x+=1,y+=r()<.2?(r()<.5?1:-1):0;else y+=1,x+=r()<.2?(r()<.5?1:-1):0;if(x<4||y<4||x>MW-5||y>MH-5)break}}
+  if(ty==='plains')for(let k=0;k<16;k++){let x=6+r()*(ZS-12),y=6+r()*(ZS-12);const horiz=r()<.5,len=6+((r()*12)|0),stone=(r(),false);/* hedgerows only: the rows of stones are gone */for(let i=0;i<len;i++){const ix=Math.round(x),iy=Math.round(y);if(map[id(ix,iy)]===G)map[id(ix,iy)]=stone?ROCKT:OAK;if(horiz)x+=1,y+=r()<.2?(r()<.5?1:-1):0;else y+=1,x+=r()<.2?(r()<.5?1:-1):0;if(x<4||y<4||x>MW-5||y>MH-5)break}}
   const reservedT=new Uint8Array(MW*MH),reserved=(x,y)=>reservedT[id(x,y)]===1;
   const setRoad=(x,y)=>{if(x<1||y<1||x>=MW-1||y>=MH-1||reserved(x,y))return;const t=map[id(x,y)];map[id(x,y)]=(t===BOG||t===WATER||t===BRIDGE)?BRIDGE:ROAD};
   /* winding tunnels (not in the swamp, which is right as it is): a heading that wanders but keeps turning back towards where it's going, and a width that swells and narrows */
@@ -1090,7 +1097,10 @@ function placeProps(r,ty){
   buildPuzzles(r,ty);
   const pz=LV.puzzle,TX=TXT[ty],any=()=>true,road1=(x,y)=>nearType(x,y,[ROAD],1),hid=(x,y)=>treeN(x,y)>=2;
   if(pz&&pz.t==='bell'){const order=[0,1,2,3].sort(()=>r()-.5);[[-2,-2],[2,-2],[-2,2],[2,2]].forEach(([dx,dy],k)=>{const x=pz.x+dx,y=pz.y+dy;map[id(x,y)]=G;addProp('bell',x,y,true,{pitch:order[k]})});map[id(pz.x,pz.y-3)]=G;addProp('grave',pz.x,pz.y-3,true,{ep:'bell'})}
-  if(pz&&pz.t==='braz')[[-2,-1],[2,-1],[0,2]].forEach(([dx,dy])=>{const x=pz.x+dx,y=pz.y+dy;map[id(x,y)]=G;addProp('brazier',x,y,true,{lit:0})});
+  /* three braziers, each with a sign cut in the bowl. They have to be lit in the order a carved stone elsewhere on the map gives; the wrong one puts them all out */
+  if(pz&&pz.t==='braz'){const set=BRAZ_SETS[(r()*BRAZ_SETS.length)|0],syms=set.order.slice().sort(()=>r()-.5);LV.braz={order:set.order,n:0};
+    [[-2,-1],[2,-1],[0,2]].forEach(([dx,dy],i)=>{const x=pz.x+dx,y=pz.y+dy;map[id(x,y)]=G;addProp('brazier',x,y,true,{lit:0,sym:syms[i]})});
+    const far=(x,y)=>Math.hypot(x-pz.x,y-pz.y)>20&&hid(x,y);for(let k=0;k<60;k++){const c=find(far,6)||find((x,y)=>Math.hypot(x-pz.x,y-pz.y)>12,4)||find(any,3);if(!c)break;if(!solidOK(c.x,c.y)){tiles.splice(tiles.indexOf(c),1);continue}addProp('pzclue',c.x,c.y,true,{title:'A carved stone',text:set.clue});break}}
   for(let k=0;k<3;k++){const e=takeU('ep'+ty,TX.eps);if(!e)break;place('grave',hid,true,{ep:e})}
   for(let k=0;k<2;k++){const t=takeU('sign'+ty,TX.signs);if(!t)break;place('sign',road1,true,{text:t},6)}
   for(let k=0;k<2;k++){const t=takeU('note'+ty,TX.notes);if(!t)break;place('corpse',hid,false,{note:t},8)}
@@ -1106,6 +1116,8 @@ function placeProps(r,ty){
   if(ty==='cave'){many('crevice',2,any,false,null,12);many('skeleton',3,hid,false,null,8);many('stoneface',1,hid,true,null,16)}
   if(ty==='swamp'){many('mudpot',3,any,false,null,8);many('hollowlog',2,hid,true,null,10);many('skeleton',1,hid,false,null,8)}
   if(ty==='plains'){many('picnic',1,any,false,null,14)}
+  /* every area has at least one stone face with a riddle, on its middle map */
+  if(LV.kind==='zone'&&LV.zi===1&&!props.some(p=>p.t==='stoneface')){for(let k=0;k<40;k++){const s=find(hid,12)||find(any,10);if(!s)break;if(!solidOK(s.x,s.y)){tiles.splice(tiles.indexOf(s),1);continue}addProp('stoneface',s.x,s.y,true);break}}
   /* the King's hand is everywhere */
   for(let k=0;k<2;k++){const t=(k===1&&r()<.6?takeU('wanted',LORE.wanted):takeU('decree',LORE.decrees))||takeU('torn',LORE.torn);if(t)place('noticeboard',road1,true,{text:t},8)||place('noticeboard',any,true,{text:t},8)}
   many('banner',ty==='cave'?1:2,ty==='swamp'?any:road1,true,null,10);many('coldcamp',2,any,false,null,10);if(r()<.6)place('grindstone',road1,true,null,10);
@@ -1113,9 +1125,14 @@ function placeProps(r,ty){
   if(LV.zi===1)place('dovecote',any,true,null,6)||place('dovecote',hid,true,null,4);
   if(AR.i===0&&LV.zi===1)place('toybox',hid,true,null,10);
   many('satchel',1,hid,false,null,8);many('glint',1,any,false,null,8);many('mound',2,any,false,null,6);many('shrine',1,road1,true,null,10);
-  if(mapDef().puzzle==='lever'){for(let k=0;k<60;k++){const s=find(any,5);if(!s)break;const ok=[0,2,4].every(dx=>map[id(s.x+dx,s.y)]===G&&!PROPAT[id(s.x+dx,s.y)]&&solidOK(s.x+dx,s.y))&&map[id(s.x+2,s.y+3)]===G&&!PROPAT[id(s.x+2,s.y+3)];if(!ok)continue;
-    let pat;do{pat=[r()<.5,r()<.5,r()<.5]}while(!pat.some(Boolean));LV.lever={pat,solved:false,x:s.x+2,y:s.y+3};
-    [0,2,4].forEach((dx,i)=>addProp('lever',s.x+dx,s.y,true,{i,up:false}));addProp('hintstone',s.x+2,s.y+3,true,{pat});break}}many('mushring',ty==='cave'?1:2,any,false,null,8);many('spring',ty==='cave'?1:2,any,false,null,8);many('satchel',2,hid,false,null,8);many('glint',3,any,false,null,8);
+  /* four sluice wheels in a row: each turns its own gate and the gates either side of it. Open all four */
+  if(mapDef().puzzle==='lever'){for(let k=0;k<400;k++){const last=k===399,s=find(last?(x,y)=>x<MW-12&&y<MH-8:any,last?2:5);if(!s)break;
+    /* if nowhere fits after many tries, clear a strip for it (the way the statues do) */
+    if(last)for(const dx of[0,1,2,3,4,5,6])for(const dy of[0,1,2,3])if(map[id(s.x+dx,s.y+dy)]!==ROAD)map[id(s.x+dx,s.y+dy)]=G;
+    const ok=[0,2,4,6].every(dx=>map[id(s.x+dx,s.y)]===G&&!PROPAT[id(s.x+dx,s.y)]&&(last||solidOK(s.x+dx,s.y)))&&map[id(s.x+3,s.y+3)]===G&&!PROPAT[id(s.x+3,s.y+3)];if(!ok)continue;
+    const open=[1,1,1,1],press=[0,1,2,3].sort(()=>r()-.5).slice(0,2+((r()*2)|0));for(const i of press)for(const j of[i-1,i,i+1])if(j>=0&&j<4)open[j]^=1;
+    LV.sluice={solved:false,x:s.x+3,y:s.y+3};[0,2,4,6].forEach((dx,i)=>addProp('sluice',s.x+dx,s.y,true,{i,open:!!open[i],rot:0}));
+    addProp('pzclue',s.x+3,s.y+3,true,{title:'A miller\'s board',text:'EACH WHEEL MOVES ITS OWN GATE\nAND THE GATES EITHER SIDE OF IT.\n\nOPEN ALL FOUR TO LET THE WATER THROUGH.'});break}}many('mushring',ty==='cave'?1:2,any,false,null,8);many('spring',ty==='cave'?1:2,any,false,null,8);many('satchel',2,hid,false,null,8);many('glint',3,any,false,null,8);
   if(ty==='woods'||ty==='plains'){many('scare',ty==='plains'?2:1,any,true,null,10);many('well',ty==='plains'?2:1,any,true,null,12);many('fox',2,hid,false,null,10)}
   if(ty==='cave'){many('crystal',14,(x,y)=>treeN(x,y)>=2,true,null,4);many('minecart',5,road1,true,null,8);many('orevein',9,(x,y)=>treeN(x,y)>=3,true,null,6);many('timber',8,(x,y)=>treeN(x,y)>=2,true,null,6)}
   if(ty==='plains'){many('flowers',12,any,false,null,5);many('sheep',8,(x,y)=>!nearType(x,y,[WATER],1),false,()=>({}),5);many('hive',3,hid,true,null,10);many('haystack',5,any,true,null,8)}
@@ -1432,7 +1449,7 @@ const FL={
   minecart:["A mine cart full of ore. Nobody came back for it.","A mine cart tipped on its side. A cold lantern lies underneath."],
   scare:["A scarecrow with its mouth stitched shut.","A scarecrow in a knight's tabard, faded past colour."],
 };
-const CROW_LINES=["“Mortimer. I trade. Coin for things, things for coin.”","“A fire knows who lit it.”","“Some of the trees by the road are not trees. Keep your distance.”","“I don't ask where things come from.”","“Ring the low bells first.”","“Each place has something at its heart, bigger than the rest. Be ready before you go to it.”","“When it raises its arm, raise your shield.”","“Most knights who come this way do not come back.”"];
+const CROW_LINES=["“Mortimer. I trade. Coin for things, things for coin.”","“Keep your fires lit. They are the only safe places on the road.”","“Some of the trees by the road are not trees. Keep your distance.”","“I don't ask where things come from.”","“Ring the low bells first.”","“Each place has something at its heart, bigger than the rest. Be ready before you go to it.”","“When it raises its arm, raise your shield.”","“Most knights who come this way do not come back.”"];
 const FROG_LINES=["“I am the King of this Fen,” says the frog. “Kneel.”","“I was a man once, and a prince. That was a long time ago.”","“The Mother sleeps in the deep water. Leave her be, if you can.”","“Flies,” says the King, “are the only honest creatures left.”"];
 const EXIT_TXT=["A passage slopes down into the dark. Cold air comes up it.","A long climb up through wet stone. At the top, grey light and the smell of rot.","The trees thin. Beyond them, daylight."];
 const BACK_TXT=["The tunnel climbs back towards the woods.","The path drops back down towards the tunnels.","The trees close in again, back towards the fen."];
@@ -2434,8 +2451,17 @@ function ringBell(p){SFX.bell(p.pitch);p.flash=.7;if(LV.bellSolved)return;LV.bel
   if(LV.bellSeq[i]!==BELL_ORDER[i]){LV.bellSeq=[];setTimeout(()=>SFX.thud(),800);return}
   if(LV.bellSeq.length===4){LV.bellSolved=true;const pz=LV.puzzle;setTimeout(()=>{[0,1,2,3].forEach(i=>setTimeout(()=>SFX.bell(i),i*140));const s=safeChestSpot(pz.x,pz.y);addChest(s.x,s.y,['tolling','elixir']);
     for(let k=0;k<20;k++)particles.push({x:s.x*T+8,y:s.y*T+8,vx:(Math.random()-.5)*40,vy:-20-Math.random()*30,g:20,life:1.4,c:pick(['#ffd870','#c9a24b']),w:'spark'});amb('The bells ring together. The ground opens.',3200)},900)}}
-function lightBrazier(p){if(LV.brazSolved||p.lit>0)return;p.lit=14;SFX.ignite();
-  const bz=props.filter(q=>q.t==='brazier');
+const BRAZ_SETS=[{order:['sun','moon','stars'],clue:'THE SUN SETS.\nTHE MOON RISES.\nLAST OF ALL, THE STARS.'},
+  {order:['crown','sword','skull'],clue:'FIRST THE CROWN.\nTHEN THE SWORD THAT TOOK IT.\nTHEN THE GRAVE.'},
+  {order:['seed','tree','axe'],clue:'THE SEED,\nTHEN THE TREE,\nAND LAST THE AXE.'},
+  {order:['candle','bell','book'],clue:'LIGHT THE CANDLE.\nRING THE BELL.\nCLOSE THE BOOK.'}];
+const BRAZ_SIGN={sun:'a sun',moon:'a crescent moon',stars:'three stars',crown:'a crown',sword:'a sword',skull:'a skull',seed:'a seed',tree:'a tree',axe:'an axe',candle:'a candle',bell:'a bell',book:'a book'};
+async function lightBrazier(p){if(LV.brazSolved)return;const sg=BRAZ_SIGN[p.sym]||'a mark';
+  if(p.lit>0){notice(`The brazier with ${sg} on it is burning.`);return}
+  const c=await dialog('A brazier',`Cold. ${sg[0].toUpperCase()+sg.slice(1)} is cut into the bowl.`,['Light it','Leave']);if(c!==0)return;
+  const Z=LV.braz,bz=props.filter(q=>q.t==='brazier');
+  if(Z&&p.sym!==Z.order[Z.n]){bz.forEach(q=>q.lit=0);Z.n=0;SFX.hiss();amb('It flares and dies, and the others go out with it.',2600);return}
+  p.lit=1;if(Z)Z.n++;SFX.ignite();
   if(bz.every(q=>q.lit>0)){LV.brazSolved=true;bz.forEach(q=>q.lit=1e9);const pz=LV.puzzle;setTimeout(()=>{SFX.chime();const s=safeChestSpot(pz.x,pz.y);addChest(s.x,s.y,['ember','elixir']);amb('Three flames burn blue. Something in the stone answers.',3200)},600)}}
 function fairy(p){const q=p.pair;if(!q)return;SFX.chime();
   for(let k=0;k<16;k++)particles.push({x:p.x,y:p.y,vx:(Math.random()-.5)*40,vy:-10-Math.random()*30,g:-5,life:1,c:pick(['#f0a0f0','#ffd8ff','#b86ae8']),w:'spark'});
@@ -2475,7 +2501,7 @@ function gearStock(p){for(const s of p.gear||[])if(s.n>0)dropGen(s.id);
 function freshStock(p){if(p.vis!==VISIT||!p.gear){p.vis=VISIT;gearStock(p)}return consStock(p).filter(s=>s.n>0).concat(p.gear.filter(s=>s.n>0))}
 /* gambling, as with Gheed: pay for an unknown piece of a given kind. Mostly it has a little magic in it; now and then it is something else entirely */
 const GAMBLE_SLOTS=['weapon','shield','helm','armor','legs','gloves','boots','belt','cloak','amulet','ring','charm'];
-const gamblePrice=(slot,t)=>Math.round((70+80*t+20*t*t)*(slot==='ring'||slot==='amulet'||slot==='charm'?1.5:1));
+const gamblePrice=(slot,t)=>Math.round(4.2*(70+80*t+20*t*t)*(slot==='ring'||slot==='amulet'||slot==='charm'?1.5:1));
 function gambleList(p){if(!p.gam){const t=tierHere();p.gam=GAMBLE_SLOTS.map(slot=>({slot,t,pr:gamblePrice(slot,t)}))}return p.gam}
 function gambleItem(slot,t){const q=Math.random(),own=owned();
   if(q<.03){const u=Object.keys(UNIQ).filter(id=>ITEMS[id].slot===slot&&UNIQ[id]<=t&&!own.has(id));if(u.length)return rollUnique(pick(u),t)}
@@ -2495,10 +2521,10 @@ async function secretEnd(){SFX.caw&&SFX.caw(1);
   $('#dstat').textContent=`Secret ending: The Debt · Hardcore · Level ${P.lv}`;$('#rise').textContent='BEGIN AGAIN';$('#dead').style.display='flex'}
 async function crowTalkDlg(){const l=crowTalk<CROW_LINES.length?CROW_LINES[crowTalk++]:'“That is all I know.”';await dialog('Mortimer',l,['Back'])}
 async function forgetDlg(){const pr=forgetPrice(),sp=Object.values(P.tal).reduce((a,b)=>a+b,0),sa=Object.values(P.attr).reduce((a,b)=>a+b,0);
-  if(!sp&&!sa){pflash('You have nothing to forget.');return}
-  const c=await dialog('Forget',`“There is a way to forget what you have learned, and start again. It is not cheap.”\n\nEvery talent and stat point you have spent comes back to you to spend again (${sp} talent, ${sa} stat).\n\n${pr} gold. You have ${P.gold}.`,['Forget it all','Leave']);
+  if(!sp&&!sa){pflash('You have no points spent.');return}
+  const c=await dialog('Respec',`Get back every talent and stat point you have spent (${sp} talent, ${sa} stat) to spend again.\n\n${pr} gold. You have ${P.gold}.`,['Respec','Leave']);
   if(c!==0)return;if(P.gold<pr){pflash("You can't afford that.");return}
-  P.gold-=pr;rec('spent',pr);P.forgot=(P.forgot||0)+1;P.pts+=sp;P.tal={};P.apts=(P.apts||0)+sa;for(const k in P.attr)P.attr[k]=0;recalc();P.hp=Math.min(P.hp,P.max);P.mp=Math.min(P.mp,P.mmax);buildKnight();SFX.dread();pflash('It leaves you dizzy. Everything you learned is waiting to be learned again.');renderPack()}
+  P.gold-=pr;rec('spent',pr);P.forgot=(P.forgot||0)+1;P.pts+=sp;P.tal={};P.apts=(P.apts||0)+sa;for(const k in P.attr)P.attr[k]=0;recalc();P.hp=Math.min(P.hp,P.max);P.mp=Math.min(P.mp,P.mmax);buildKnight();SFX.dread();pflash(`Respecced: ${sp} talent and ${sa} stat point${sa===1?'':'s'} to spend again.`);renderPack()}
 
 /* ================= HUNTERS (0.16) =================
    Once in each region something picks up your trail. It is far tougher than anything else there, it never loses interest, and if you leave
@@ -2548,18 +2574,20 @@ const WSWING={sword:{dur:.22,cd:.4,r:22,w:16,arc:2.6,len:15},dagger:{dur:.13,cd:
   mace:{dur:.26,cd:.46,r:20,w:15,arc:2.2,len:14},flail:{dur:.32,cd:.5,r:23,w:20,arc:3.8,len:16},great:{dur:.32,cd:.6,r:28,w:20,arc:3,len:21},
   hammer:{dur:.34,cd:.62,r:21,w:18,arc:2.2,len:17,slam:1},spear:{dur:.2,cd:.44,r:31,w:7,arc:0,len:25},halberd:{dur:.3,cd:.56,r:29,w:14,arc:1.8,len:23},
   scythe:{dur:.34,cd:.58,r:26,w:26,arc:4.4,len:20,back:7}};
+/* creatures whose sprite is much wider than their body: hit area is the body only (width, height in pixels). The thornling's long thorns don't count */
+const HITB={thornling:[12,14]};
 const swingOf=()=>WSWING[wType()]||WSWING.sword;
 function doSlash(){if(P.slashCd>0||pendHit)return;const S=swingOf();P.slashT=S.dur;P.slashDur=S.dur;P.slashCd=S.cd;S.arc?SFX.slash():SFX.whoosh();
   const[fx,fy]=FD[P.face],reach=Math.min(S.r*.55,15),hx=P.x+fx*reach,hy=P.y-6+fy*reach,ox=P.x,oy=P.y-6;
   const inArc=(x,y,big,ex=0)=>{/* only the half in front of you: al is how far ahead the point is, so nothing behind (or level with your back) can be hit */
     const dx=x-ox,dy=y-oy,al=dx*fx+dy*fy,lat=Math.abs(dy*fx-dx*fy);return al>=-(S.back||0)&&al<S.r+(big?9:0)+ex*.9&&lat<S.w+(big?9:0)+ex*.9};
-  /* if the swing catches more than one creature, only the nearest is hit */
-  let best=null,bd=1e9;
-  for(const m of mobs){const im=SPR[m.kind]&&SPR[m.kind][0],sc=m.boss?2:1,hw=im?im.width*sc/2:6,hh=im?im.height*sc:12,ex=Math.max(0,hw-7);
-    const my=m.state==='dormant'?m.y-10:m.y-Math.min(6,hh/2),my2=m.y-hh*.6;
-    /* test the point of the creature's body nearest the swing, not just its centre: big things are easy to hit */
-    const nx=clamp(ox,m.x-hw*.85,m.x+hw*.85),ny=clamp(oy,m.y-hh*.9,m.y);
-    if(inArc(m.x,my,m.boss,ex)||inArc(m.x,my2,m.boss,ex)||inArc(nx,ny,m.boss,5)){const dd=Math.hypot(nx-ox,ny-oy);if(dd<bd){bd=dd;best={m,my}}}}
+  /* if the swing catches more than one creature, only the nearest is hit. A creature is hit when the part of its body nearest the middle
+     of the swing lies in front of you (not level with you or behind) and within the blade's reach and sweep; bosses are bigger targets */
+  let best=null,bd=1e9;const cx=ox+fx*S.r*.5,cy=oy+fy*S.r*.5;
+  for(const m of mobs){const im=SPR[m.kind]&&SPR[m.kind][0],sc=m.boss?2:1,hb=HITB[m.kind],hw=hb?hb[0]/2:im?im.width*sc/2:6,hh=hb?hb[1]:im?im.height*sc:12,big=m.boss?9:0;
+    const my=m.state==='dormant'?m.y-10:m.y-Math.min(6,hh/2);
+    const nx=clamp(cx,m.x-hw*.6,m.x+hw*.6),ny=clamp(cy,m.y-hh*.8,m.y),dx=nx-ox,dy=ny-oy,al=dx*fx+dy*fy,lat=Math.abs(dy*fx-dx*fy);
+    if(al>=2-(S.back||0)-big&&al<=S.r+big&&lat<=S.w*.8+big){const dd=Math.hypot(dx,dy);if(dd<bd){bd=dd;best={m,my}}}}
   if(best){const m=best.m,my=best.my;for(let i=0;i<10;i++)particles.push({x:m.x,y:my,vx:(Math.random()-.5)*60,vy:-10-Math.random()*40,g:60,life:.5,c:pick(['#ffffff','#ffe8a0','#d8402a']),w:'spark'});
       if(m.state==='dormant'&&m.kind!=='strawman'){m.state='waking';m.t=0;SFX.creak();m.first='player';return}
       if(m.state==='dormant')m.state='awake';
@@ -2667,7 +2695,7 @@ function updProps(dt){
         for(const da of[0,.5,-.5,1,-1,1.6,-1.6]){const a=a0+da,nx=p.x+Math.cos(a)*52*dt,ny=p.y+Math.sin(a)*52*dt;if(passable(nx,ny+3)&&passable(nx+4,ny+3)&&passable(nx-4,ny+3)){p.vx=Math.cos(a)*52;p.x=nx;p.y=ny;moved=true;break}}
         if(d<11){p.st=2;SFX.coin&&SFX.coin();notice('You grab the fox by the scruff. It drops what it was carrying and twists free. '+grant([chance(.35)?genGear(tierHere()):lootRoll(tierHere())],chance(.5)?coinsFor():0))}
         else if(d>200||p.life>20)p.st=2}continue}}
-  for(const p of props)if(p.t==='brazier'&&p.lit>0&&!LV.brazSolved){p.lit-=dt;if(p.lit<=0){p.lit=0;SFX.hiss()}}}
+}
 function updCam(){const ww=MW*T,hh=MH*T;/* follow the player's ROUNDED position, so the knight's on-screen spot never flips a pixel back and forth as the camera and he round differently (the walking jitter) */
   /* the camera moves in half-pixel steps (the canvas is 2x, so still whole real pixels): cam.x/y stay whole numbers for all the drawing code, and the
      leftover half (cam.fx/fy) is applied once as a shift of the whole world layer. Everything that moves is drawn on the same half-pixel grid. */
@@ -2711,7 +2739,7 @@ function updMob(m,dt){
     if(m.state==='dormant'){if(d<(m.boss?46:26)&&mode==='world'&&!DEV.peace){m.state='waking';m.t=0;m.kind==='elder'||m.kind==='ent'?SFX.creak():m.gk?SFX.thud():SFX.dread();m.first='ambush'}return}
     if(m.state==='waking'){m.t+=dt;if(m.t>.85&&mode==='world'){if(m.kind==='ent'||m.kind==='elder'||m.gk)map[id(m.tx,m.ty)]=G;m.state='awake';startBattle(m,m.first)}return}
     /* once awake (you ran from it), an ent wanders and chases like anything else, only very slowly */
-    if(m.kind!=='ent'){m.stun-=dt;if(m.stun<=0&&d<14&&P.inv<=0&&mode==='world'&&!DEV.peace)startBattle(m,'contact');return}}
+    if(m.kind!=='ent'){m.stun-=dt;if(m.stun<=0&&d<(KINDS[m.kind].pack?13:11)&&P.inv<=0&&mode==='world'&&!DEV.peace)startBattle(m,'contact');return}}
   if(m.stun>0)m.stun-=dt;if(m.bored>0)m.bored-=dt;
   /* past the first region everything out here moves faster: +12% per region */
   const k=KINDS[m.kind];let sp=k.spd*(EV.blood>0?1.15:1)*1.05*(1+.12*AR.i),tx=0,ty=0;
@@ -2823,7 +2851,9 @@ function drawCrack(tx,ty){const x=tx*T-cam.x,y=ty*T-cam.y;
   else{ctx.fillStyle='#050505';ctx.beginPath();ctx.ellipse(x+8,y+9,9,8,0,0,7);ctx.fill();ctx.fillStyle='#5a5650';ctx.beginPath();ctx.ellipse(x+8,y+8,8,7,0,0,7);ctx.fill();ctx.fillStyle='#7a7670';ctx.fillRect(x+3,y+3,5,3)}
   ctx.strokeStyle='#d8a24a';ctx.globalAlpha=.55+Math.sin(time*2+tx)*.15;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+8,y);ctx.lineTo(x+6,y+5);ctx.lineTo(x+10,y+8);ctx.lineTo(x+7,y+13);ctx.stroke();ctx.globalAlpha=1}
 function drawBld(b){const B=BTYPES[b.bt],img=bldSprite(b.bt),x=b.x*T-cam.x,y=(b.y+B.fh)*T-img.height-cam.y;ctx.drawImage(img,Math.round(x),Math.round(y));
-  if(b.nailed){const dx=Math.round(b.door.x*T-cam.x),dy=Math.round(b.door.y*T-cam.y);for(const[o,a]of[[3,-1],[8,1],[12,-1]]){ctx.fillStyle='#1a120a';ctx.fillRect(dx,dy+o-1,16,4);ctx.fillStyle='#7a5a34';ctx.fillRect(dx,dy+o,16,2);ctx.fillStyle='#c8c8c8';ctx.fillRect(dx+2,dy+o,1,1);ctx.fillRect(dx+13,dy+o,1,1)}}
+  /* boards across the doorway itself: same centre, width and height as the door drawn on the house */
+  if(b.nailed){const dw=B.fw>=5?12:10,dh=B.fw>=5?16:14,bw=dw+6,dx=Math.round(b.x*T+(B.fw>>1)*16+8-bw/2-cam.x),by=Math.round((b.y+B.fh)*T-(B.style==='stilt'?8:0)-cam.y);
+    for(const o of[dh-3,Math.round(dh/2)+1,4]){ctx.fillStyle='#1a120a';ctx.fillRect(dx,by-o-1,bw,4);ctx.fillStyle='#7a5a34';ctx.fillRect(dx,by-o,bw,2);ctx.fillStyle='#c8c8c8';ctx.fillRect(dx+1,by-o,1,1);ctx.fillRect(dx+bw-2,by-o,1,1)}}
   if(B.style==='mill'){const hx=x+img.width/2,hy=y+img.height-B.fh*16-10,a=time*.6;ctx.strokeStyle='#3a2a1a';ctx.lineWidth=2;for(let k=0;k<4;k++){const an=a+k*Math.PI/2;ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(hx+Math.cos(an)*26,hy+Math.sin(an)*26);ctx.stroke();ctx.fillStyle='rgba(220,210,180,.8)';ctx.save();ctx.translate(hx,hy);ctx.rotate(an);ctx.fillRect(8,1,17,5);ctx.restore()}ctx.fillStyle='#2a1a0a';ctx.fillRect(hx-2,hy-2,4,4)}
   if(B.chim&&Math.random()<.05)particles.push({x:b.x*T+img.width-10+cam.x*0,y:(b.y+B.fh)*T-img.height+2,vx:3,vy:-8,g:-1,life:2.5,c:'rgba(120,120,120,.6)',w:'smoke'})}
 function drawBarrier(tx,ty){const x=tx*T-cam.x,y=ty*T-cam.y,cave=LV.type==='cave';
@@ -2988,7 +3018,7 @@ function updBUI(){if(!B)return;
   const PI=[];for(const k of['poison','bleed','burn','dazed','blind','rooted','wither'])if(P.st[k])PI.push(iconHTML(k,P.st[k]));let pi='';
   if(P.guard)pi+=iconHTML('guard');if(B.riposte)pi+=iconHTML('riposte');if(P.blessed)pi+=iconHTML('blessed',0,`<span class='r'>${P.blessed} fight${P.blessed>1?'s':''} left</span>`);if(EV.blood>0)pi+=iconHTML('bloodmoon');
   const pb=B.pb||{};if(B.charge)pi+=iconHTML('windup');if(pb.ward==='evade')pi+=iconHTML('evade');if(pb.ward==='riposte'||pb.dgU>=B.rnd)pi+=iconHTML('ward');if(pb.brace)pi+=iconHTML('brace');if(pb.fort)pi+=iconHTML('fort',pb.fort);if(pb.unsh)pi+=iconHTML('unsh',pb.unsh);if(pb.kind)pi+=iconHTML('kind');if(pb.whet)pi+=iconHTML('whet');
-  $('#picons').innerHTML=iconRow(PI.concat(pi.match(/<img[^>]*>/g)||[]));for(const f of B.foes)if(!f.dead)noteSeen(f);$('#pxp').style.width=clamp(P.xp/nextXp(P.lv),0,1)*100+'%';$('#pxpn').textContent=`${P.xp}/${nextXp(P.lv)}`;statusDiff()}
+  $('#picons').innerHTML=iconRow(PI.concat(pi.match(/<img [\s\S]*?">(?=<img |$)/g)||[]));for(const f of B.foes)if(!f.dead)noteSeen(f);$('#pxp').style.width=clamp(P.xp/nextXp(P.lv),0,1)*100+'%';$('#pxpn').textContent=`${P.xp}/${nextXp(P.lv)}`;statusDiff()}
 /* log every buff and debuff as it lands or wears off, so Resolve order shows them in sequence */
 function pStatKeys(){const s=[],pb=B.pb||{};for(const k of PDEB)if(P.st[k])s.push(k);if(P.guard)s.push('guard');if(B.riposte)s.push('riposte');if(B.charge)s.push('windup');if(pb.ward==='evade')s.push('evade');if(pb.ward==='riposte'||pb.dgU>=B.rnd)s.push('ward');for(const k of['brace','fort','unsh','kind','whet'])if(pb[k])s.push(k);return s}
 function statusDiff(){if(!B||B.over)return;const cur={p:pStatKeys()};B.foes.forEach((f,i)=>{if(!f.dead&&f.hp>0)cur[i]=Object.keys(f.st).filter(k=>f.st[k]>0&&STATUS[k])});
@@ -3054,9 +3084,9 @@ function skillList(){const l=[{id:'smite',n:'Smite',mp:smiteCost(),tip:'Holy fir
 const skUsable=s=>P.mp>=s.mp&&!(s.once&&B&&B.onceU&&(B.onceU[s.id]||0)>=s.once);
 /* the three lists share one tab bar, sitting along the bottom of the text box: Attacks | Skills | Items, and ✕ back to the main buttons */
 function showSub(kind){const el=$('#sub');$('#bui').classList.add('insub');$('#subt').innerHTML=[['attack','Attacks'],['skills','Skills'],['items','Items']].map(([k,n])=>`<b class="stab${k===kind?' on':''}" data-k="${k}">${n}</b>`).join('')+'<b class="subx">✕</b>';let h='';
-  if(kind==='attack'){h+=`<button data-a="slash" data-tip="${esc(`<b>Slash</b><span class='r'>100% · accuracy ${Math.round(pAcc()*100)}%</span><span class='fx'>A plain, full-strength blow. Its armour is subtracted from the damage. Now and then a gold ring closes on the foe: tap as it closes for a precise strike (+40%), or exactly as it closes for a perfect one (double damage). Neither can be dodged, parried or blocked.</span>`)}">Slash<small>100%</small></button>`;for(const a of ARTS[wType()])h+=`<button data-a="ar:${a.id}" ${canArt(a)?'':'disabled'} data-tip="${esc(`<b>${a.n}</b><span class='r'>${artSmall(a)}</span><span class='fx'>${a.tip}</span><span class='fx' style='color:#a8a08a'>Accuracy ${Math.round(pAcc(ACCM[a.id]||0)*100)}%${['measured','overhead'].includes(a.id)?' (cannot miss)':''}</span>`)}">${a.n}<small>${artSmall(a)}</small></button>`}
-  else if(kind==='skills'){h+=`<button data-a="guard" data-tip="<b>Guard</b><span class='fx'>Raise your shield: take far less damage until your next turn and recover 2 MP. When a red ring closes on you, tap as it closes to parry (half damage), or exactly as it closes to take no damage at all. Poisons and the like still land.</span>">Guard<small>first</small></button>`;for(const s of skillList())h+=`<button data-a="sk:${s.id}" ${!skUsable(s)?'disabled':''} data-tip="${esc(`<b>${s.n}</b><span class='r'>${s.mp} MP</span><span class='fx'>${s.tip}</span>`)}">${s.n}<small>${s.once&&B.onceU&&B.onceU[s.id]?'used':s.mp+' MP'}</small></button>`}
-  else{for(const k in P.tools){h+=`<button data-a="tl:${k}" ${(B.tu[k]||0)>=((1+(P.tool2||0)))?'disabled':''} data-tip="${esc(itemTip('t_'+k))}">${TOOLS[k].n}<small>tool</small></button>`}
+  if(kind==='attack'){h+=`<button data-a="slash" data-tip="${esc(`<b>Slash</b><span class='r'>100% · accuracy ${Math.round(pAcc()*100)}%</span><span class='fx'>A plain, full-strength blow. Its armour is subtracted from the damage. Now and then a gold ring closes on the foe: tap as it closes for a precise strike (+40%), or exactly as it closes for a perfect one (double damage). Neither can be dodged, parried or blocked.</span>`)}">Slash</button>`;for(const a of ARTS[wType()])h+=`<button data-a="ar:${a.id}" ${canArt(a)?'':'disabled'} data-tip="${esc(`<b>${a.n}</b><span class='r'>${artSmall(a)}</span><span class='fx'>${a.tip}</span><span class='fx' style='color:#a8a08a'>Accuracy ${Math.round(pAcc(ACCM[a.id]||0)*100)}%${['measured','overhead'].includes(a.id)?' (cannot miss)':''}</span>`)}">${a.n}${artSmall(a)?`<small>${artSmall(a)}</small>`:''}</button>`}
+  else if(kind==='skills'){h+=`<button data-a="guard" data-tip="<b>Guard</b><span class='fx'>Raise your shield: take far less damage until your next turn and recover 2 MP. When a red ring closes on you, tap as it closes to parry (half damage), or exactly as it closes to take no damage at all. Poisons and the like still land.</span>">Guard</button>`;for(const s of skillList())h+=`<button data-a="sk:${s.id}" ${!skUsable(s)?'disabled':''} data-tip="${esc(`<b>${s.n}</b><span class='r'>${s.mp} MP</span><span class='fx'>${s.tip}</span>`)}">${s.n}<small>${s.once&&B.onceU&&B.onceU[s.id]?'used':s.mp+' MP'}</small></button>`}
+  else{for(const k in P.tools){const left=Math.max(0,1+(P.tool2||0)-(B.tu[k]||0));h+=`<button data-a="tl:${k}" ${left?'':'disabled'} data-tip="${esc(itemTip('t_'+k))}">${TOOLS[k].n}<small>${left?`${left} use${left>1?'s':''} left`:'used'}</small></button>`}
     const its=P.bag.filter(b=>ITEMS[b.id].use);for(const b of its)h+=`<button data-a="it:${b.id}" data-tip="${esc(itemTip(b.id))}">${ITEMS[b.id].n}<small>×${b.n}</small></button>`;if(!its.length&&!Object.keys(P.tools).length)h+='<div class="empty">Nothing in your bag will help here.</div>'}
   el.innerHTML=h;el.scrollTop=0;$('#subt').querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>act(t.dataset.k)));$('#subt .subx').addEventListener('click',()=>act('back'));el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>act(b.dataset.a)));
   $('#acts').style.display='none';el.style.display='grid';placeTabs()}
@@ -3581,7 +3611,8 @@ const ARTS={
 const ARTS_S={"riposte": "40% + 40%", "measured": "60% sure", "hilt": "40%", "hew": "75% shred", "hook": "45% expose", "headsman": "90/220%", "crush": "80% pierce", "concuss": "40% stun", "bulwark": "40%", "lunge": "75%", "setspear": "60% counter", "skewer": "70% / 45%", "flurry": "4 × 22%", "envenom": "30% poison", "shadow": "evade", "overhead": "200%", "sweep": "50% all", "ironwill": "cleanse", "sunder": "60% shred", "quake": "45% all", "anvil": "40%", "reap": "45% all", "hamstring": "45% weaken", "bloodharvest": "3 × 40%", "lash": "65% sure", "wrap": "35% expose", "whirl2": "40% all", "chop": "90% shred", "keepback": "50% slow", "pullhook": "50% stun"};
 const ARTN={};for(const k in ARTS)for(const a of ARTS[k]){ARTN[a.id]=a;a.s=ARTS_S[a.id]}
 function costTxt(a){const c=a.c,p=[];if(c.mp)p.push(c.mp+' MP');if(c.hp)p.push(Math.max(1,Math.round(P.max*c.hp))+' HP');if(c.ch)p.push('2 turns');if(a.pri===1)p.push('first');if(a.pri===-1)p.push('last');return p.join(' · ')}
-const artSmall=a=>[a.s,costTxt(a)].filter(Boolean).join(' · ');
+/* under an attack's name: only what it costs (MP or HP), nothing else */
+const artSmall=a=>{const c=a.c,p=[];if(c.mp)p.push(c.mp+' MP');if(c.hp)p.push(Math.max(1,Math.round(P.max*c.hp))+' HP');return p.join(' · ')};
 function canArt(a){const c=a.c;return P.mp>=(c.mp||0)&&(!c.hp||P.hp>Math.round(P.max*c.hp))}
 function actPri(a){a=a||"";if(a==='guard'||a==='flee'||a.startsWith('it:'))return 100;if(a.startsWith('ar:')){const r=ARTN[a.slice(3)];return r.pri===1?100:r.pri===-1?-100:0}return 0}
 const PDEB=['poison','bleed','burn','dazed','blind','rooted','wither'];
@@ -3870,7 +3901,7 @@ addVariant('broodmother','spider',{name:'Broodmother',hm:1.6,am:1.25,tint:'#6a2a
 /* the plains get their own disguised tree-thing: an old hawthorn hedge that has had enough */
 addVariant('hedgeent','ent',{name:'Hawthorn Brute',hm:1.35,am:1.25,tint:'#9a8a3a',ta:.35,intro:["Part of the hedgerow tears itself up by the roots and comes at you, thorns first.","A hawthorn that was never planted by anyone stands up out of the hedge."],study:[['h',"Old, dry wood. It'll burn well."]]});
 addVariant('greywolf','wolf',{name:'Timber Wolf',hm:1.35,am:1.25,tint:'#9aa0a8',ta:.4});
-addVariant('oldbear','bear',{name:'Old Blackfur',hm:1.5,am:1.3,tint:'#b8b0a0',ta:.25,intro:["An old bear, grey at the muzzle and scarred all over. It has seen off better knights than you. Probably.","Old Blackfur. The woodcutters name him in their prayers, and not kindly."],study:[['f',"There is a broken arrowhead in his shoulder, healed over years ago."]]});
+addVariant('oldbear','bear',{name:'Old Blackfur',hm:1.5,am:1.3,tint:'#b8b0a0',ta:.25,intro:["An old bear, grey at the muzzle and scarred all over. Knights have hunted it before.","Old Blackfur. The woodcutters have lost men to him."],study:[['f',"There is a broken arrowhead in his shoulder, healed over years ago."]]});
 addVariant('blackooze','ooze',{name:'Black Ooze',hm:1.5,am:1.3,tint:'#0a0a14',ta:.55,intro:["One of the black pools on the floor starts to move towards you."]});
 addVariant('barrowknight','knight',{name:'Barrow Knight',hm:1.2,am:1.15,tint:'#8aa88a',ta:.3,intro:["A knight in mouldering armour climbs out of a niche in the wall. He was buried with honours. He has kept the sword."]});
 addVariant('crystalgolem','golem',{name:'Crystal Golem',hm:1.4,am:1.2,tint:'#6ab0ff',ta:.35,intro:["A golem grown through with blue crystal. It hums when it moves."]});
@@ -3970,8 +4001,8 @@ const NEWP={
     P.blessed=Math.max(P.blessed,3);SFX.thunk();notice('It comes down. Out in the field a horn sounds, and Harrow\'s men will be coming. You are Blessed.');huntNow(chance(.5)?'band3':'houndpack')}},
   /* puzzles */
   pzstatue:{u:()=>LV.pz&&LV.pz.done?1:2,draw:(p,bx,by)=>{const im=PS.statue;ctx.drawImage(im,Math.round(bx-im.width/2),Math.round(by-im.height));const d=[[0,-1],[1,0],[0,1],[-1,0]][p.f];ctx.fillStyle=LV.pz.done?'#ffd870':'#e8e0c8';ctx.fillRect(Math.round(bx+d[0]*5-1),Math.round(by-im.height/2+d[1]*5-1),2,2)},
-    use:async p=>{if(LV.pz.done){notice(`It faces ${FACE[p.f]}, like the others.`);return}p.f=(p.f+1)%4;SFX.thunk();amb(`You heave it round. It faces ${FACE[p.f]} now.`,1800);
-      if(props.filter(q=>q.t==='pzstatue').every(q=>q.f===LV.pz.want)){LV.pz.done=1;setTimeout(()=>{SFX.chime();pzChest(LV.pz.x,LV.pz.y);amb('All three look the same way. The ground between them opens.',3200)},500)}}},
+    use:async p=>{const nm=p.nm||'The statue';if(LV.pz.done){notice(`${nm} faces ${FACE[p.f]}.`);return}p.f=(p.f+1)%4;SFX.thunk();amb(`You heave it round. ${nm} faces ${FACE[p.f]} now.`,1800);
+      if(props.filter(q=>q.t==='pzstatue').every(q=>q.f===q.want)){LV.pz.done=1;setTimeout(()=>{SFX.chime();pzChest(LV.pz.x,LV.pz.y);amb('Each of them faces its own way now. The ground between them opens.',3200)},500)}}},
   pzclue:{u:()=>2,draw:(p,bx,by)=>{const im=PS.hintstone||PS.grave;ctx.drawImage(im,Math.round(bx-im.width/2),Math.round(by-im.height))},use:async p=>{await showEp(p.title||'A carved stone',p.text)}},
   pzgrave:{u:p=>p.dug?0:2,draw:(p,bx,by)=>{const im=p.dug?PS.dug||PS.grave:PS.grave;ctx.drawImage(im,Math.round(bx-im.width/2),Math.round(by-im.height))},
     use:async p=>{const c=await dialog('A grave',p.ep,['Dig','Leave'],false);if(c!==0)return;if(LV.pz.done){notice('Nothing here but the dead.');p.dug=1;return}p.dug=1;SFX.dig();
@@ -3988,8 +4019,14 @@ function mapExtras(h){const D=mapDef(),r=h.r,W={any:h.any,hid:h.hid,road:h.road1
   const pz=D.puzzle;
   /* puzzles never go right next to the boss pocket, where the paths can't always be joined up */
   const okPz=(x,y)=>x>=10&&y>=10&&x<MW-11&&y<MH-12&&h.openish(x,y)&&!(LV.pocket&&x>LV.pocket.x0-9&&x<LV.pocket.x1+9&&y>LV.pocket.y0-9&&y<LV.pocket.y1+9);
-  if(pz==='statues'){const s=h.find(okPz,5)||h.find(h.openish,5)||h.find(h.any,4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);const want=(r()*4)|0;LV.pz={t:'statues',want,x:s.x,y:s.y};[[-3,0],[3,0],[0,-3]].forEach(([dx,dy])=>{const x=s.x+dx,y=s.y+dy;if(map[id(x,y)]!==G)map[id(x,y)]=G;addProp('pzstatue',x,y,true,{f:(want+1+((r()*3)|0))%4})});
-    addProp('pzclue',s.x,s.y+3,true,{text:['THEY ALL LOOKED UP AT THE NORTH STAR\nAND WERE LOST.','THEY WATCHED THE SUN RISE\nOVER THE CASTLE, EVERY MORNING,\nUNTIL THE MORNING IT DID NOT.','THEY TURNED TO FACE THE SOUTH,\nWHERE HE WOULD COME FROM.','THEY KEPT THEIR EYES ON THE WEST\nAND THE SETTING SUN, AND WAITED.'][want],title:'A carved stone'})}}
+  /* three named statues, each meant to face its own way. What each one watched is cut on a stone somewhere else on the map */
+  if(pz==='statues'){const s=h.find(okPz,5)||h.find(h.openish,5)||h.find(h.any,4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);LV.pz={t:'statues',x:s.x,y:s.y};
+    const NM=['The Soldier','The Priest','The Widow'],SAY=[n=>`${n.toUpperCase()} LOOKED NORTH,\nTO THE MOUNTAINS.`,n=>`${n.toUpperCase()} WATCHED THE EAST,\nWHERE THE SUN CAME UP OVER THE CASTLE.`,n=>`${n.toUpperCase()} FACED SOUTH,\nDOWN THE OLD ROAD.`,n=>`${n.toUpperCase()} KEPT WATCH ON THE WEST,\nWHERE THE SUN WENT DOWN.`];
+    const wants=[0,1,2].map(()=>(r()*4)|0);if(wants.every(w=>w===wants[0]))wants[2]=(wants[2]+1+((r()*3)|0))%4;
+    [[-3,0],[3,0],[0,-3]].forEach(([dx,dy],i)=>{const x=s.x+dx,y=s.y+dy;if(map[id(x,y)]!==G)map[id(x,y)]=G;addProp('pzstatue',x,y,true,{i,nm:NM[i],want:wants[i],f:(wants[i]+1+((r()*3)|0))%4})});
+    addProp('pzclue',s.x,s.y+3,true,{text:'THREE WATCHERS.\nEACH LOOKED ITS OWN WAY.\nWHAT THEY WATCHED IS CUT ON STONES ELSEWHERE.',title:'A carved stone'});
+    const far=(x,y)=>Math.hypot(x-s.x,y-s.y)>22&&h.openish(x,y)&&!props.some(p=>p.t==='pzclue'&&Math.hypot(p.tx-x,p.ty-y)<14);
+    for(let i=0;i<3;i++){const c=h.find(far,6)||h.find((x,y)=>Math.hypot(x-s.x,y-s.y)>14&&h.any(x,y),4);if(c)addProp('pzclue',c.x,c.y,true,{text:SAY[wants[i]](NM[i]),title:'A carved stone'})}}}
   if(pz==='graves'){const s=h.find(okPz,5)||h.find(h.openish,5)||h.find(h.any,4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);const foe={0:'ghoul',1:'revenant',2:'drowned',3:'barrowknight'}[AR.i]||'ghoul';const yrs=[(r()*40|0)+300,(r()*40|0)+350,(r()*40|0)+400].sort(()=>r()-.5);const names=['ODO','BERTRAN','MAUD','ISOLDE','HUGH','AGNES','WAT','CECILY'].sort(()=>r()-.5);
     const rule=(r()*2)|0,best=rule?Math.max(...yrs):Math.min(...yrs);LV.pz={t:'graves',foe};
     [[-3,0],[0,0],[3,0]].forEach(([dx],k)=>{const x=s.x+dx,y=s.y;map[id(x,y)]=G;addProp('pzgrave',x,y,true,{ep:`${names[k]}\nDIED IN THE YEAR ${yrs[k]}`,right:yrs[k]===best})});
@@ -4021,7 +4058,7 @@ const MEV={
   sinking:async()=>{const c=await dialog('Soft ground','Your leg goes in to the knee, and the mud starts to pull.',['Pull free','Leave the boot']);if(c===0){const d=Math.round(P.max*.1);P.hp=Math.max(1,P.hp-d);notice(`You haul yourself out, boot and all. Your knee twists as you come free. −${d} HP.`)}else{notice('You leave the boot in the mud and go on with one bare foot.')}},
   frogchorus:async()=>{const c=await dialog('A chorus','A hundred frogs are singing, all at once, all around you.',['Croak back','Keep quiet']);if(c===0){SFX.croak&&SFX.croak();notice('The frogs fall silent. Then, one by one, they bring you things. '+grant([pick(['ring','button','locket'])],ri(4,10)))}else amb('They sing you all the way across.',3000)},
   fog:async()=>{EV.fog=240;SFX.dread();amb('A fog comes up off the water, thick and grey.',3600)},
-  motherdream:async()=>{await showEp('A dream, standing up','For a moment you are somewhere else: a nursery, two beds, a woman singing. Then the song goes wet and wrong, and you are back in the bog, and the singing is still going.\n\nShe is close.');P.st.poison=2},
+  motherdream:async()=>{await showEp('A dream, standing up','For a moment you are somewhere else: the castle nursery, two beds, your mother singing. Then you are back in the bog, and the singing goes on.\n\nShe is close.');P.st.poison=2},
   refugees:async()=>{const c=await dialog('A family on the road','A man, a woman and three children, with everything they own on their backs. They are fleeing the King\'s new tax. They look at your sword, then at the ground.',['Give 20 gold','Give a potion','Wish them luck']);
     if(c===0){if(P.gold<20){notice('You do not have it to give. They thank you anyway.');return}P.gold-=20;P.blessed=Math.max(P.blessed,3);SFX.shrine();notice('The woman takes your hand. “The ford past the mill,” she says. “The soldiers never watch it.” You are Blessed.')}
     else if(c===1){if(!hasItem('potion')){notice('You have none left. They thank you anyway.');return}removeItem('potion');notice('The youngest gives you something she found by the road. '+grant([genGear(tierHere(),{min:3,max:3,noU:1,slot:'charm'})]))}},
@@ -4129,7 +4166,7 @@ wisplamp:once('A will-o\'-the-wisp','A pale light, floating just above the reeds
 eggclutch:once('A clutch of eggs','Eggs the size of your head, leathery, warm. One of them twitches.',['Smash them','Leave'],async()=>{
   gainXP(14+P.lv*4);notice('You do it quickly. Their mother is less quick, but not by much.');fightNow('brood')},'Shells and slime.'),
 rotoffering:once('A heap of offerings','Rotten meat, piled on a flat stone and buzzing. An offering.',['Burn bitterleaf over it','Eat a piece','Leave'],async c=>{
-  if(c===0){if(!hasItem('bitterleaf')){notice('You have no bitterleaf.');return false}removeItem('bitterleaf');P.blessed=Math.max(P.blessed,3);SFX.shrine();notice('The smoke drives the flies off. Something in the fen is offended. You are Blessed.')}
+  if(c===0){if(!hasItem('bitterleaf')){notice('You have no bitterleaf.');return false}removeItem('bitterleaf');P.blessed=Math.max(P.blessed,3);SFX.shrine();notice('The smoke drives the flies off. You are Blessed.')}
   else{P.st.poison=5;gainXP(20+P.lv*5);SFX.eat();notice('You do it. You don\'t know why. You are Poisoned, and you understand the Mother a little better.')}},'The flies have it back.'),
 cocoon:once('A silk cocoon','A cocoon as long as a man, hung from a dead tree.',['Cut it open','Leave'],async()=>{
   if(chance(.5)){notice('He is alive, barely. He gives you everything he has and runs. '+grant(['potion','bandage'],coinsFor()*2))}else notice('He is not alive. His gear is still good. '+grant([gearOf()]))},'Empty silk, moving in the wind.'),
@@ -4153,7 +4190,7 @@ tollbooth:once('A toll booth','A barrier across the road and a booth with a stro
 warhorn:once('A war horn','A big horn on a post at the edge of the field, for calling the companies in.',['Blow it','Leave'],async()=>{
   SFX.shout&&SFX.shout();gainXP(16+P.lv*4);notice('The note rolls across the whole field. Every head on it turns toward you.');huntNow('knight')},'The horn is cracked now.'),
 fallenbanner:once('A fallen banner','Your family\'s banner. Not his black and gold: the old green. Trampled into the mud.',['Raise it','Leave it'],async c=>{
-  if(c!==0)return false;P.blessed=Math.max(P.blessed,5);P.mp=P.mmax;SFX.shrine();notice('You drive the pole into the earth. Somewhere across the field, someone sees it and stops. MP restored. You are Blessed.')},'The note carries right across the field.'),
+  if(c!==0)return false;P.blessed=Math.max(P.blessed,5);P.mp=P.mmax;SFX.shrine();notice('You drive the pole into the earth. MP restored. You are Blessed.')},'The note carries right across the field.'),
 pinnedletter:once('A letter on a knife','A letter, pinned to a post with a knife you recognise. It\'s addressed to you.',['Read it','Leave'],async()=>{
   gainXP(20+P.lv*5);notice('“Come home, then. I\'ve kept your room. — W.”  The knife is yours. You gave it to him when you were boys. '+grant([gearOf({slot:'weapon',wt:'dagger'})]))},'The knife hole in the post.'),
 });
@@ -4364,6 +4401,18 @@ function pzUpdate(dt,vx,vy){if(!LV.rooms)return;pzPush(vx,vy,dt);
       /* inside the vault: it's yours, the gate stays up for good */
       if(Math.abs(ptx-R0.cx)<=1&&Math.abs(pty-R0.cy)<=1){R0.done=1;R0.open=1e9;rec('puzzles',1);SFX.chime()}
       else if(R0.open<=0){R0.open=0;const g=props.find(p=>p.t==='pzgate'&&p.room===ri);if(g)map[id(g.tx,g.ty)]=PROPT;SFX.thud();amb('The portcullis slams down.',1600)}}})}
+
+/* ---- sluice wheels (replaced the up/down levers): turning a wheel flips its own gate and its neighbours'; all four open solves it ---- */
+Object.assign(NEWP,{sluice:{u:()=>LV.sluice&&LV.sluice.solved?1:2,
+  draw:(p,bx,by)=>{const cx=Math.round(bx),cy=Math.round(by-8);
+    ctx.fillStyle='#050403';ctx.fillRect(cx-6,cy-16,12,6);ctx.fillStyle=p.open?'#2a5a7a':'#3e2a1a';ctx.fillRect(cx-5,cy-15,10,4);if(!p.open){ctx.fillStyle='#5a4028';ctx.fillRect(cx-5,cy-15,10,1)}else{ctx.fillStyle='#8ac0e0';ctx.fillRect(cx-3,cy-14,6,1)}
+    ctx.fillStyle='#050403';ctx.beginPath();ctx.arc(cx,cy,7,0,7);ctx.fill();ctx.fillStyle='#5a4028';ctx.beginPath();ctx.arc(cx,cy,6,0,7);ctx.fill();ctx.fillStyle='#2a1a0c';ctx.beginPath();ctx.arc(cx,cy,4,0,7);ctx.fill();
+    ctx.strokeStyle='#8a6a44';ctx.lineWidth=1;for(let k=0;k<4;k++){const a=p.rot+k*Math.PI/4;ctx.beginPath();ctx.moveTo(cx-Math.cos(a)*6,cy-Math.sin(a)*6);ctx.lineTo(cx+Math.cos(a)*6,cy+Math.sin(a)*6);ctx.stroke()}
+    ctx.fillStyle='#c9a24b';ctx.fillRect(cx-1,cy-1,2,2);ctx.fillStyle='#3a2a1a';ctx.fillRect(cx-1,cy+6,2,3)},
+  use:async p=>{const S=LV.sluice;if(S.solved){notice('All four gates are open.');return}const ws=props.filter(q=>q.t==='sluice');
+    for(const q of ws)if(Math.abs(q.i-p.i)<=1){q.open=!q.open;q.rot+=Math.PI/4}SFX.clang();
+    const n=ws.filter(q=>q.open).length;amb(`The wheel turns. ${n} of 4 gates open.`,1600);
+    if(n===4){S.solved=true;setTimeout(()=>{SFX.chime();const s=safeChestSpot(S.x,S.y);addChest(s.x,s.y,[genGear(Math.min(3,tierHere()+1),{min:3}),'elixir']);amb('The water runs through all four gates. A chest comes loose from the silt.',3200)},500)}}}});
 /* ================= CLICKABLE TYPES =================
    Each area has 50 types of clickable: its own older props (mound, cart, idol...) plus the kinds below. A map's clickable slots
    (as many as there always were) are filled from 20 types: the first map of an area picks from the first 20 of the area's pool,
@@ -4415,7 +4464,7 @@ cave:[
    look:['A candle burning on a ledge. Somebody\'s been down here today.','A row of candle stubs, one for each man who didn\'t come up.','It gutters in the draught.'],
    find:'You take what\'s left of it:',fixed:'candlestub'},
   {id:'pick',n:'A broken pick',w:[3,3,0,0,0],spr:f=>{f('#5a4028',0,3,8,1);f('#7a7a82',7,0,2,6);f('#5a5a62',6,0,1,2)},
-   look:['The handle has snapped clean across.','Good iron. Nobody leaves a pick like this on purpose.','Initials burned into the handle: T.W.'],
+   look:['The handle has snapped clean across.','Good iron, the point still sharp.','Initials burned into the handle: T.W.'],
    find:'You prise off the head:',fixed:'scrap'},
   {id:'ratnest',n:'A rats\' nest',w:[2,2,3,0,0],spr:f=>{f('#2a2420',0,2,10,5);f('#4a3e32',1,2,8,4);f('#a8a090',3,3,2,1);f('#6a5a4a',6,3,2,2)},
    look:['Shredded cloth, bootlaces, a page from a prayer book.','Empty. The rats have moved on.'],
@@ -4587,7 +4636,7 @@ SMK.swamp.push(
   {id:'eeltrap',n:'A wicker eel trap',w:[3,2,2,0,0],spr:f=>{f('#6a5a3a',2,3,9,5);f('#4a3a24',3,4,7,3);f('#0a0806',10,5,1,1)},
    look:['A wicker trap, staked out in the shallows.','Empty. Something tore the wicker.'],bite:['An eel lunges out as you lift it and bites your wrist.'],find:'Inside it:'},
   {id:'peat',n:'A peat stack',w:[4,2,0,0,0],spr:f=>{f('#1a1208',1,3,11,6);for(let i=0;i<3;i++)f('#3a2a1a',2+i*3,3+(i%2),3,4)},
-   look:['Cut peat, stacked to dry. It never dried.','The cutter\'s spade marks are still in each block.'],find:'Between the turfs:'},
+   look:['Cut peat, stacked to dry, and soaked through.','The cutter\'s spade marks are still in each block.'],find:'Between the turfs:'},
   {id:'heron',n:'A dead heron',w:[5,1,0,0,0],spr:f=>{f('#8a8a92',3,4,7,3);f('#8a8a92',9,2,1,3);f('#c8a040',9,1,3,1);f('#5a5a62',2,7,2,1)},
    look:['A heron, dead in the mud, neck bent back.','Something ate the eyes and left the rest.'],find:'Beside it:'},
   {id:'marigold',n:'Marsh marigolds',w:[2,0,0,0,4],spr:f=>{f('#1e3a1c',1,4,11,5);for(const[a,b]of[[2,3],[6,4],[9,3]])f('#e8c030',a,b,2,2)},
@@ -4613,7 +4662,7 @@ SMK.swamp.push(
   {id:'hagstone',n:'A holed stone',w:[4,1,0,0,1],spr:f=>{f('#0a0a0c',3,2,7,6);f('#6a6a64',4,3,5,4);f('#0a0a0c',6,4,1,2)},
    look:['A stone with a hole worn through it by water.','The fen-folk say you can see the truth through one.'],heal:['You look through the hole across the fen, and feel steadier.'],find:'Beside it:'},
   {id:'fishrack',n:'A drying rack',w:[4,2,0,0,0],spr:f=>{f('#4a3424',2,1,1,8);f('#4a3424',10,1,1,8);f('#4a3424',2,2,9,1);for(const a of[4,6,8])f('#8a8a7a',a,3,1,3)},
-   look:['A rack of fish, dried hard and black.','Flies, mostly.'],find:'Hung with the fish:'},
+   look:['A rack of fish, dried hard and black.','It is black with flies.'],find:'Hung with the fish:'},
   {id:'midges',n:'Midges',w:[2,0,5,0,0],spr:f=>{for(const[a,b]of[[3,2],[5,4],[8,3],[6,6],[10,5],[4,7]])f('#2a2a28',a,b,1,1)},
    look:['A cloud of midges over the water.'],bite:['They cover your face and neck. You come away covered in bites.']},
   {id:'hat',n:'A floating hat',w:[4,2,0,0,0],spr:f=>{f('#1a2a3a',0,5,13,4);f('#3a2a1a',3,4,7,2);f('#3a2a1a',5,2,3,2)},
@@ -4726,7 +4775,7 @@ function updHud(){
   if(!(hudFrame++%20)){$('#hlvrow').dataset.tip=`<b>Level ${P.lv}</b><span class='r'>${P.xp} / ${nextXp(P.lv)} XP</span><span class='fx'>${nextXp(P.lv)-P.xp} XP to level ${P.lv+1}.</span>`;{const pc=Math.max(0,Math.min(100,Math.round((1-P.xp/nextXp(P.lv))*100)));$('#hlvt').dataset.tip=`<b>Level ${P.lv}</b><span class='fx'>${pc}% left until level ${P.lv+1}.</span>`}$('#hhead').dataset.tip=pTip(true);
     if(typeof KNW!=='undefined'&&KNW){const hx=$('#headc').getContext('2d');hx.imageSmoothingEnabled=false;hx.clearRect(0,0,16,20);hx.drawImage(KNW.down[0],-KPAD+2,-KPAD+2)}}
   const key=[P.blessed,EV.blood>0,EV.fog>0,P.regen,JSON.stringify(P.st)].join();if(key!==hudKey){hudKey=key;let h='';
-    if(P.blessed)h+=iconHTML('blessed',0,`<span class='r'>${P.blessed} fight${P.blessed>1?'s':''} left</span>`);if(EV.blood>0)h+=iconHTML('bloodmoon');if(EV.fog>0)h+=iconHTML('fog');for(const k of['poison','bleed','burn','blind','wither'])if(P.st[k])h+=iconHTML(k,P.st[k]);$('#hbuffs').innerHTML=iconRow(h.match(/<img[^>]*>/g)||[])}}
+    if(P.blessed)h+=iconHTML('blessed',0,`<span class='r'>${P.blessed} fight${P.blessed>1?'s':''} left</span>`);if(EV.blood>0)h+=iconHTML('bloodmoon');if(EV.fog>0)h+=iconHTML('fog');for(const k of['poison','bleed','burn','blind','wither'])if(P.st[k])h+=iconHTML(k,P.st[k]);$('#hbuffs').innerHTML=iconRow(h.match(/<img [\s\S]*?">(?=<img |$)/g)||[])}}
 
 /* ================= TOOLTIPS ================= */
 const tipEl=$('#tip');let tipTimer=null,tipSuppress=false,tipOwner=null;
@@ -4748,7 +4797,8 @@ document.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-tip
   if(instant(el)&&!el.classList.contains('hb')){tipTap=el;return}
   tipTimer=setTimeout(()=>{showTip(el);tipSuppress=true;if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}},430)},true);
 let tipTap=null;/* instant tips open when the finger lifts, on the same thing it went down on */
-document.addEventListener('pointerup',e=>{clearTimeout(tipTimer);const el=tipTap;tipTap=null;if(el&&e.target.closest('[data-tip]')===el){if(tipOwner===el)hideTip();else showTip(el)}},true);
+/* the panel may have redrawn between press and release: then the same icon is a new element, matched by its tooltip */
+document.addEventListener('pointerup',e=>{clearTimeout(tipTimer);const el=tipTap;tipTap=null;const now=e.target.closest('[data-tip]');if(!el||!now||(now!==el&&now.dataset.tip!==el.dataset.tip))return;if(tipOwner&&tipOwner.dataset.tip===now.dataset.tip)hideTip();else showTip(now)},true);
 document.addEventListener('pointercancel',()=>clearTimeout(tipTimer),true);
 document.addEventListener('click',e=>{if(tipSuppress){tipSuppress=false;e.stopPropagation();e.preventDefault()}},true);
 document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse')return;const el=e.target.closest('[data-tip]');clearTimeout(tipTimer);if(!el){hideTip();return}if(el!==tipOwner)tipTimer=setTimeout(()=>showTip(el),220)});
@@ -4758,6 +4808,8 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 let dlgPrev=null;
 let dlgKeep=false,dlgLastScroll=0;
 /* menus have no Leave/Back button: the ✕ in the corner (or Esc) does that, and backs out of nested menus all the way */
+/* menus (the main menu, fires, the anvil, Mortimer's counter, travel prompts) don't write to the world log; things you do out in the world do */
+const DLG_NOLOG=/^(The Old Road|Quit without saving\?|Record|Respec|Anvil|A campfire|A cold firepit|The way on|The way back|Mortimer)$/;
 const DLG_CANCEL=/^(leave|back|stay|keep playing|resume|close|done|cancel|not now|never mind)$/i;let dlgAbort=false;
 function dialog(title,body,choices,raw,tips){return new Promise(res=>{let ci=-1;choices.forEach((c,i)=>{if(DLG_CANCEL.test(String(c).trim()))ci=i});
   if(dlgAbort&&ci>=0){res(ci);return}dlgAbort=false;
@@ -4766,7 +4818,7 @@ function dialog(title,body,choices,raw,tips){return new Promise(res=>{let ci=-1;
   $('#dlgc').innerHTML=choices.map((c,i)=>i===ci&&!/^resume$/i.test(String(c).trim())?'':`<div class="btn${i===0&&choices.length>1&&!tips?' pri':''}" data-i="${i}"${tips&&tips[i]?` data-tip="${esc(tips[i])}"`:''}>${esc(c)}</div>`).join('');
   const X=$('#dlgx');X.style.display=ci>=0?'block':'none';X.onclick=ci<0?null:()=>{/* ✕ is the same as that screen's Back/Leave: one step back, not all the way out */$('#dlg').style.display='none';hideTip();mode=dlgPrev==='dlg'||dlgPrev==='note'?'world':dlgPrev;res(ci)};
   $('#dlg').style.display='flex';
-  $('#dlgc').scrollTop=dlgKeep?dlgLastScroll:0;dlgKeep=false;$('#dlgc').querySelectorAll('.btn').forEach(b=>b.onclick=()=>{dlgLastScroll=$('#dlgc').scrollTop;if(typeof clog==='function'&&dlgPrev!=='battle'){const bd=plainT(raw?body:esc(body)).trim(),ch=choices[+b.dataset.i];clog(choices.length>1?`${title} → ${ch}`:`${title}${bd?': '+bd.split('\n')[0].slice(0,80)+(bd.length>80?'…':''):''}`,bd,'#d8cfb0','','world')}$('#dlg').style.display='none';hideTip();mode=dlgPrev==='dlg'||dlgPrev==='note'?'world':dlgPrev;res(+b.dataset.i)})})}
+  $('#dlgc').scrollTop=dlgKeep?dlgLastScroll:0;dlgKeep=false;$('#dlgc').querySelectorAll('.btn').forEach(b=>b.onclick=()=>{dlgLastScroll=$('#dlgc').scrollTop;if(typeof clog==='function'&&dlgPrev!=='battle'&&!DLG_NOLOG.test(title)){const bd=plainT(raw?body:esc(body)).trim(),ch=choices[+b.dataset.i];clog(choices.length>1?`${title} → ${ch}`:`${title}${bd?': '+bd.split('\n')[0].slice(0,80)+(bd.length>80?'…':''):''}`,bd,'#d8cfb0','','world')}$('#dlg').style.display='none';hideTip();mode=dlgPrev==='dlg'||dlgPrev==='note'?'world':dlgPrev;res(+b.dataset.i)})})}
 
 /* ================= PACK ================= */
 const SLOTS=[['helm','HEAD'],['amulet','NECK'],['armor','CHEST'],['legs','LEGS'],['boots','FEET'],['weapon','MAIN HAND'],['shield','OFF HAND'],['cloak','BACK'],['gloves','HANDS'],['belt','BELT'],['ring','RING'],['ring2','RING'],['charm','CHARM'],['charm2','CHARM']];
@@ -4859,7 +4911,7 @@ function renderDet(){const d=$('#det');
   const it=ITEMS[id],R=RARITY[it.r];const PAIR={charm:'charm2',ring:'ring2'},pb=it.slot,p2=PAIR[pb];let tslot=p2?(sel.cmp&&(sel.cmp===pb||sel.cmp===p2)?sel.cmp:(!P.eq[pb]?pb:!P.eq[p2]?p2:pb)):it.slot;const cur=sel.src==='bag'&&it.slot&&P.eq[tslot]?ITEMS[P.eq[tslot]]:null;
   const btns=sel.src==='eq'?'<button class="btn" id="dA">Unequip</button>':it.slot?'<button class="btn pri" id="dA">Equip</button><button class="btn" id="dB">Discard</button>':it.junk||it.mat?'<button class="btn" id="dB">Discard</button>':'<button class="btn pri" id="dA">Use</button><button class="btn" id="dB">Discard</button>';
   if(sel.src==='bag'&&it.slot){const two=p2&&P.eq[pb]&&P.eq[p2];
-    d.innerHTML=`<h3 style="color:${R.c}">${esc(iname(id))}</h3><div class="ty" style="color:${R.c}aa">${typeLine(it)}</div>${two?`<div class="cpick"><b class="${tslot===pb?'on':''}" data-c="${pb}">vs first ${pb}</b><b class="${tslot===p2?'on':''}" data-c="${p2}">vs second ${pb}</b></div>`:''}${cmpHTML(id,P.eq[tslot])}<div class="btns"><button class="btn pri" id="dA">${P.eq[tslot]?'Equip, replacing it':'Equip'}</button><button class="btn" id="dB">Discard</button></div>`;
+    d.innerHTML=`<h3 style="color:${R.c}">${esc(iname(id))}</h3><div class="ty" style="color:${R.c}aa">${typeLine(it)}</div>${two?`<div class="cpick"><b class="${tslot===pb?'on':''}" data-c="${pb}">vs first ${pb}</b><b class="${tslot===p2?'on':''}" data-c="${p2}">vs second ${pb}</b></div>`:''}${cmpHTML(id,P.eq[tslot])}<div class="btns"><button class="btn pri" id="dA">Equip</button><button class="btn" id="dB">Discard</button></div>`;
     d.querySelectorAll('.cpick b').forEach(b=>b.onclick=()=>{sel.cmp=b.dataset.c;renderPack()})}
   else d.innerHTML=`<h3 style="color:${R.c}">${esc(iname(id))}</h3><div class="ty" style="color:${R.c}aa">${typeLine(it)}${cur?` · replaces ${esc(iname(P.eq[tslot]))}`:''}</div><div class="sl">${it.slot?compareLines(it,cur)+specialLines(it).map(l=>`<div>${l}</div>`).join(''):`<div>${it.junk?'No use. A merchant will buy it.':it.fx}</div>`}${it.set?`<div>${setHTML(it).replace(/<span/g,'<div').replace(/<\/span>/g,'</div>')}</div>`:''}<div style="color:#c9a24b">Sells for ${sellPrice(id)} gold</div></div><div class="fl">${esc(it.d||'')}</div><div class="btns">${btns}</div>`;
   if(sel.src==='bag'){const bb=P.bag[sel.i],bt=d.querySelector('.btns');if(bt&&bb){bt.insertAdjacentHTML('beforeend',`<button class="btn lock" id="dL">${bb.lk?'Unlock':'Lock'}</button>`);if(bb.lk){const x=$('#dB');if(x)x.remove()}
@@ -4935,7 +4987,7 @@ function renderBestiary(){const ord=bestiaryOrder(),S=P.seen||{},K=P.known||{},k
   $('#bgrid').innerHTML=ord.map(k=>{const s=S[k];if(!s)return`<div class="bc un"><i>?</i><span>???</span></div>`;
     return`<div class="bc${bstSel===k?' on':''}${s.boss?' boss':''}" data-k="${k}"><img src="${sprURL(s.vk||s.kind)}"><span>${esc(s.name)}</span>${knowE(k)?'':'<em>not studied</em>'}</div>`}).join('');
   const s=bstSel&&S[bstSel];
-  if(!s){$('#bdet').innerHTML=`<div class="bhint">${n?'Tap a creature to see what you know about it.':'You haven\'t fought anything yet. That won\'t last.'}</div>`;return}
+  if(!s){$('#bdet').innerHTML=`<div class="bhint">${n?'Tap a creature to see what you know about it.':'Nothing here yet. A creature appears here once you have fought it.'}</div>`;return}
   const f=Object.assign({st:{},k:KINDS[s.kind],hp:s.max},s);f.ek=s.key;f.name=s.name;
   let h=`<div class="btop"><img src="${sprURL(s.vk||s.kind)}"><div>${foeTip(f).replace(/<b>[^<]*<\/b>/,`<b>${esc(s.name)}</b>`)}</div></div>`;
   if(K[s.key||s.kind])h+=`<span class='wh'>Strength</span><span class='wr'><span>Health</span><em>${s.max}</em></span><span class='wr'><span>Attack</span><em>${Math.round(s.atk)}</em></span><span class='ws'>the strongest one you have met (level ${s.lv})</span>`;
@@ -4983,8 +5035,8 @@ function tSlot(id,n,i,src,pr,lk){const it=ITEMS[id];return`<div class="slot${sel
 function renderTrade(){const X=TRADE;if(!X){packTab='bag';renderPack();return}$('#trgold').textContent='◈ '+P.gold+' gold';let top='',bar='';
   if(packTab==='buy'&&X.crow){$('#trtl').textContent=X.crow.road?'Mortimer, on a branch':"Mortimer's wares";TL=freshStock(X.crow);
     top=TL.map((s,i)=>tSlot(s.id,s.n,i,'shop',buyPrice(s.id))).join('')||'<div class="empty-note">He has nothing left to sell you.</div>';const jv=junkVal();
-    bar=`<button class="btn" data-b="junk"${jv?'':' disabled'}>Sell all junk${jv?' · '+jv:''}</button>${X.crow.road?'':`<button class="btn" data-b="restock">Different gear · ${restockPrice()}</button>`}<button class="btn" data-b="forget">Forget…</button><button class="btn" data-b="talk">Talk</button>`}
-  else if(packTab==='gamble'&&X.crow){$('#trtl').textContent='Sold as they are. No looking first.';TL=gambleList(X.crow);
+    bar=`<button class="btn" data-b="junk"${jv?'':' disabled'}>Sell all junk${jv?' · '+jv:''}</button>${X.crow.road?'':`<button class="btn" data-b="restock">Reroll gear · ${restockPrice()}</button>`}<button class="btn" data-b="forget">Respec · ${forgetPrice()}</button><button class="btn" data-b="talk">Talk</button>`}
+  else if(packTab==='gamble'&&X.crow){$('#trtl').textContent='Gamble: pick a slot';TL=gambleList(X.crow);
     top=TL.map((g,i)=>`<div class="slot q${sel&&sel.src==='gam'&&sel.i===i?' sel':''}" data-src="gam" data-i="${i}"><img src="${qIcon(g.slot)}"><i class="pr${P.gold<g.pr?' no':''}">${g.pr}</i></div>`).join('')}
   else if(packTab==='forge'&&X.forge){$('#trtl').textContent='At the anvil: pick something to work on';TL=forgeList();
     top=TL.map((g,i)=>{const it=ITEMS[g.id];return`<div class="slot${sel&&sel.src==='fg'&&sel.i===i?' sel':''}" data-src="fg" data-i="${i}" data-tip="${esc(itemTip(g.id))}" style="border-color:${RARITY[it.r].c}77"><img src="${icon(g.id)}">${g.eq?'<i class="pr" style="color:#c7b377">worn</i>':''}${it.so?`<i class="n">${(it.gems||[]).length}/${it.so}</i>`:''}</div>`}).join('')||'<div class="empty-note">You have nothing to work on.</div>'}
@@ -5012,8 +5064,8 @@ function infoHTML(id){const it=ITEMS[id];if(!it.slot)return`<div class="sl"><div
 function tradeDet(d){const X=TRADE,R=c=>RARITY[c.r];let h='',btn='';
   if(sel.src==='fg'){forgeDet(d);return}
   if(sel.src==='gam'){const g=TL[sel.i];if(!g){sel=null;renderDet();return}
-    h=`<h3>An unknown ${(SLOTN[g.slot]||g.slot).toLowerCase()}</h3><div class="ty">Gamble · as good as what you find around here</div><div class="sl"><div>Usually Uncommon. Often Rare. Now and then Epic or Legendary, and very rarely a unique or a piece of a set.</div></div><div class="pr">${g.pr} gold · you have ${P.gold}</div><div class="fl">“No refunds. No looking.”</div>`;
-    btn=`<button class="btn pri" id="tA">Buy it unseen · ${g.pr}</button>`}
+    const sn=SLOTN[g.slot]||g.slot;h=`<h3>${sn[0].toUpperCase()+sn.slice(1)}</h3><div class="sl"><div>Random ${sn}, as good as the gear found in this area. Usually Magic, often Rare, sometimes Epic or Legendary, rarely a unique or set item.</div></div><div class="pr">${g.pr} gold · you have ${P.gold}</div>`;
+    btn=`<button class="btn pri" id="tA">Gamble - ${g.pr}</button>`}
   else{const L=sel.src==='shop'?TL:sel.src==='stash'?P.stash:P.bag,e=L[sel.i];if(!e){sel=null;renderDet();return}const it=ITEMS[e.id];
     h=`<h3 style="color:${R(it).c}">${esc(iname(e.id))}${e.n>1?` ×${e.n}`:''}</h3><div class="ty" style="color:${R(it).c}aa">${typeLine(it)}</div>${infoHTML(e.id)}${it.set?`<div class="sl">${setHTML(it).replace(/<span/g,'<div').replace(/<\/span>/g,'</div>')}</div>`:''}`;
     if(sel.src==='shop'){const pr=buyPrice(e.id);h+=`<div class="pr">${pr} gold · you have ${P.gold}</div>${it.slot?'':`<div class="fl">${esc(it.d||'')}</div>`}`;btn=`<button class="btn pri" id="tA">Buy · ${pr}</button>`}
@@ -5028,7 +5080,8 @@ function tradeDet(d){const X=TRADE,R=c=>RARITY[c.r];let h='',btn='';
 function tradeAct(){const X=TRADE;
   if(sel.src==='gam'){const g=TL[sel.i];if(P.gold<g.pr){pflash("You can't afford that.");return}if(P.bag.length>=BAG_MAX){pflash('Your bag is full.');return}
     P.gold-=g.pr;rec('spent',g.pr);rec('gambles',1);const id=gambleItem(g.slot,g.t);addItem(id);const it=ITEMS[id];SFX.coin();if(it.r>=4)setTimeout(()=>SFX.lvl&&SFX.lvl(),150);
-    sel={src:'tbag',i:P.bag.findIndex(b=>b.id===id)};pflash(`It's ${/^[AEIOU]/i.test(RARITY[it.r].n)?'an':'a'} ${RARITY[it.r].n.toLowerCase()} one: ${iname(id)}.`);renderPack();return}
+    /* the slot stays selected and in stock, so you can gamble on it again straight away */
+    pflash(`${iname(id)} (${RARITY[it.r].n}).`);renderPack();return}
   if(sel.src==='shop'){const s=TL[sel.i],pr=buyPrice(s.id);if(P.gold<pr){pflash("You can't afford that.");return}if(!addItem(s.id)){pflash('Your bag is full.');return}
     P.gold-=pr;rec('spent',pr);s.n--;SFX.coin();if(s.n<=0)sel=null;renderPack();return}
   if(sel.src==='stash'){const b=P.stash[sel.i];if(stackable(b.id)&&P.bag.find(x=>x.id===b.id)){P.bag.find(x=>x.id===b.id).n+=b.n}else{if(P.bag.length>=BAG_MAX){pflash('Your bag is full.');return}P.bag.push(b)}P.stash.splice(sel.i,1);sel=null;SFX.thunk&&SFX.thunk();renderPack();return}
