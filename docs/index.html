@@ -331,9 +331,6 @@ body{font-size:18px}
 #det .btns .btn[disabled]{opacity:.4}
 @media (orientation:landscape) and (max-height:640px){#pk-trade.on{overflow:auto}.tgrid{grid-template-columns:repeat(8,1fr)}}
 
-/* portrait, out of battle: the world runs full height and the controls sit over it, see-through like the stats and log panels */
-@media not all and (orientation:landscape) and (max-height:640px){
-  #app:not(.battle) #controls{position:absolute;left:0;right:0;bottom:0;z-index:5;background:rgba(7,10,8,.55);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);box-shadow:none;border-top:1px solid #3a4a3c}}
 
 /* the Record list in the main menu: compact rows, scrolls inside the window (no visible scrollbar) */
 #dlgb .rec{max-height:min(62vh,520px);overflow-y:auto;scrollbar-width:none;margin:0}#dlgb .rec::-webkit-scrollbar{display:none}
@@ -369,7 +366,7 @@ let SIM_OUTER=false;
       info.textContent=d[1]?`${w}×${h}${s!==1?' · shown at '+Math.round(s*100)+'%':''}`:'';f.focus()}
     addEventListener('resize',apply);apply()})})();
 </script>
-<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.24.1</div>
+<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.24.3</div>
   <div id="view">
     <canvas id="cv"></canvas>
     <div id="hud">
@@ -1950,7 +1947,6 @@ function fitTitle(){const t=document.querySelector('#title');if(!t||t.style.disp
   const rs=kids.map(e=>e.getBoundingClientRect()),top=Math.min(...rs.map(r=>r.top)),bot=Math.max(...rs.map(r=>r.bottom)),wid=Math.max(...rs.map(r=>r.width));
   const tr=t.getBoundingClientRect(),z=Math.min(1,(tr.height-24)/(bot-top)*.95,(tr.width-24)/wid);if(z<.999)t.style.zoom=Math.max(.45,z)}
 setInterval(()=>{if(typeof mode!=='undefined'&&mode==='title')fitTitle()},400);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>setTimeout(fitTitle,50));
-let OVB=0;
 function resize(){const r=$('#view').getBoundingClientRect(),dpr=window.devicePixelRatio||1;if(r.width<10||r.height<10)return;{const lb=$('#logb'),pp=$('#ppanel');if(lb&&pp){const want=matchMedia('(orientation:landscape) and (max-height:640px)').matches?pp:$('#bui');if(lb.parentNode!==want)want.appendChild(lb)}}if(typeof placeTabs==='function')setTimeout(placeTabs,0);setTimeout(fitTitle,0);
   /* ONE LOOK EVERYWHERE. The screen's short side always shows the same number of game pixels (VIEW_W in the world, VIEW_B in battle), so the
      world, the knight and every creature are the same size relative to the screen on every phone, in either orientation. That makes the scale S
@@ -1961,8 +1957,6 @@ function resize(){const r=$('#view').getBoundingClientRect(),dpr=window.devicePi
   /* indoors: zoom out (up to a third) so more of the room fits; the knight stops looking enormous next to the furniture */
   if(!B&&LV&&LV.kind==='interior'){const fit=Math.min(r.width*dpr/(LV.MW*T),r.height*dpr/(LV.MH*T));S=Math.max(S*.66,Math.min(S,fit))}KK=Math.min(4,HDK*Math.max(1,Math.ceil(S/HDK-.001)));
   W=Math.ceil(r.width*dpr/S);H=Math.ceil(r.height*dpr/S);
-  /* how much of the bottom of the view the see-through controls cover, in game pixels (the camera keeps the knight centred in what is left) */
-  const cc=$('#controls');OVB=(!B&&cc&&getComputedStyle(cc).position==='absolute'&&!matchMedia('(orientation:landscape) and (max-height:640px)').matches)?Math.round(cc.getBoundingClientRect().height*dpr/S):0;
   cv.width=W*KK;cv.height=H*KK;cv.style.width=(W*S/dpr)+'px';cv.style.height=(H*S/dpr)+'px';cv.style.imageRendering=KK>=S?'auto':'pixelated';dk.width=W;dk.height=H;ctx.setTransform(KK,0,0,KK,0,0);ctx._hd=true;ctx.imageSmoothingEnabled=false;BG=null;VIG=null}
 addEventListener('resize',()=>setTimeout(resize,60));
 addEventListener('orientationchange',()=>setTimeout(resize,250));
@@ -2677,7 +2671,7 @@ function updProps(dt){
 function updCam(){const ww=MW*T,hh=MH*T;/* follow the player's ROUNDED position, so the knight's on-screen spot never flips a pixel back and forth as the camera and he round differently (the walking jitter) */
   /* the camera moves in half-pixel steps (the canvas is 2x, so still whole real pixels): cam.x/y stay whole numbers for all the drawing code, and the
      leftover half (cam.fx/fy) is applied once as a shift of the whole world layer. Everything that moves is drawn on the same half-pixel grid. */
-  const px=R2(P.x),py=R2(P.y),cx=ww<=W?Math.round((ww-W)/2):R2(clamp(px-W/2,0,ww-W)),vh=H-OVB,cy=hh<=vh?Math.round((hh-vh)/2):R2(clamp(py-8-vh/2,0,hh-vh));
+  const px=R2(P.x),py=R2(P.y),cx=ww<=W?Math.round((ww-W)/2):R2(clamp(px-W/2,0,ww-W)),cy=hh<=H?Math.round((hh-H)/2):R2(clamp(py-8-H/2,0,hh-H));
   cam.x=Math.floor(cx);cam.y=Math.floor(cy);cam.fx=cx-cam.x;cam.fy=cy-cam.y}
 function passable(px,py){const tx=Math.floor(px/T),ty=Math.floor(py/T);if(tx<0||ty<0||tx>=MW||ty>=MH)return false;const t=map[ty*MW+tx];return!BLOCK[t]&&t!==DOOR&&t!==IDOOR}
 function boxFree(x,y){return passable(x-4,y-4)&&passable(x+3,y-4)&&passable(x-4,y-1)&&passable(x+3,y-1)}
@@ -5204,9 +5198,10 @@ addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
   const upd=e=>{const r=pad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const d=Math.hypot(dx,dy),mx=48*(r.width/150);
     if(d>mx){dx*=mx/d;dy*=mx/d}nub.style.transform=`translate(${dx/(r.width/150)}px,${dy/(r.width/150)}px)`;/* full speed in any direction: divide by the clamped length, not the raw finger distance (which made you slow down whenever your thumb went past the edge, mostly on diagonals) */
     const dl=Math.hypot(dx,dy);padV=d<10?{x:0,y:0}:{x:dx/dl,y:dy/dl}};
-  pad.addEventListener('pointerdown',e=>{pid=e.pointerId;pad.setPointerCapture(pid);upd(e)});
+  /* lit from the moment you touch it until you let go, moving or not */
+  pad.addEventListener('pointerdown',e=>{pid=e.pointerId;pad.setPointerCapture(pid);pad.classList.add('on');upd(e)});
   pad.addEventListener('pointermove',e=>{if(e.pointerId===pid)upd(e)});
-  const end=e=>{if(e.pointerId!==pid)return;pid=null;padV={x:0,y:0};nub.style.transform=''};
+  const end=e=>{if(e.pointerId!==pid)return;pid=null;padV={x:0,y:0};nub.style.transform='';pad.classList.remove('on')};
   pad.addEventListener('pointerup',end);pad.addEventListener('pointercancel',end)})();
 /* buttons act when you lift your finger, and only if it is still on the button (slide off to cancel) */
 const press=(el,fn)=>{let pid=null;el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid)}catch(_){}el.classList.add('down')});
