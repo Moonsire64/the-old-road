@@ -330,6 +330,14 @@ body{font-size:18px}
 #det .btn.lock{margin-left:auto}#det .pr{color:#c9a24b;font-family:Inter,system-ui,sans-serif;font-size:13px;margin:4px 0}
 #det .btns .btn[disabled]{opacity:.4}
 @media (orientation:landscape) and (max-height:640px){#pk-trade.on{overflow:auto}.tgrid{grid-template-columns:repeat(8,1fr)}}
+
+/* portrait, out of battle: the world runs full height and the controls sit over it, see-through like the stats and log panels */
+@media not all and (orientation:landscape) and (max-height:640px){
+  #app:not(.battle) #controls{position:absolute;left:0;right:0;bottom:0;z-index:5;background:rgba(7,10,8,.55);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);box-shadow:none;border-top:1px solid #3a4a3c}}
+
+/* the Record list in the main menu: compact rows, scrolls inside the window (no visible scrollbar) */
+#dlgb .rec{max-height:min(62vh,520px);overflow-y:auto;scrollbar-width:none;margin:0}#dlgb .rec::-webkit-scrollbar{display:none}
+#dlgb .rec .str{display:flex;justify-content:space-between;gap:10px;padding:4px 8px;font-size:15px;border-bottom:1px solid #1b281e}#dlgb .rec .str em{color:#8a8670;font-style:normal;font-size:13px}
 </style>
 </head>
 <body>
@@ -361,7 +369,7 @@ let SIM_OUTER=false;
       info.textContent=d[1]?`${w}×${h}${s!==1?' · shown at '+Math.round(s*100)+'%':''}`:'';f.focus()}
     addEventListener('resize',apply);apply()})})();
 </script>
-<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.23.3</div>
+<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.24.1</div>
   <div id="view">
     <canvas id="cv"></canvas>
     <div id="hud">
@@ -816,7 +824,7 @@ const curMap=()=>AR.i*NZ+(LV.kind==='zone'?LV.zi:(LV.parent||0));
 const XP_MAP=[.12,.29,.53, 1.67,2.15,2.97, 4.48,4.89,5.16, 2.92,2.62,2.8];
 const AREAS=[];
 let AR=null,LV=null,map,fires,decos,glowShrooms,fireflies,crows,chests,CHESTS,props,PROPAT,SPAWNS,REACH,START;
-function bindLevel(L){LV=L;AR=L.area;MW=L.MW;MH=L.MH;map=L.map;fires=L.fires;decos=L.decos;glowShrooms=L.glow;fireflies=L.flies;crows=L.crows;chests=L.chests;CHESTS=L.CH;props=L.props;PROPAT=L.PAT;SPAWNS=L.spawns;REACH=L.reach;START=L.start;if(typeof bindSmalls==='function'&&L.reach)bindSmalls()}
+function bindLevel(L){LV=L;AR=L.area;MW=L.MW;MH=L.MH;map=L.map;fires=L.fires;decos=L.decos;glowShrooms=L.glow;fireflies=L.flies;crows=L.crows;chests=L.chests;CHESTS=L.CH;props=L.props;PROPAT=L.PAT;SPAWNS=L.spawns;REACH=L.reach;START=L.start}
 function getArea(i){if(!AREAS[i])AREAS[i]={i,def:AREA_DEFS[i],zones:[],ints:{},bossDead:false,lastFire:null};return AREAS[i]}
 function getZone(ar,zi){if(!ar.zones[zi]){const prev=LV;ar.zones[zi]=genZone(ar,zi);if(prev)bindLevel(prev)}return ar.zones[zi]}
 function getInterior(ar,key){if(!ar.ints[key].L){const prev=LV,d=ar.ints[key];d.L=genInterior(ar,key,d);if(prev)bindLevel(prev)}return ar.ints[key].L}
@@ -903,7 +911,7 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
   if(def.puzzle&&def.puzzle.z===zi){const p=randPt(12,20);L.puzzle={t:def.puzzle.t,x:p.x,y:p.y};pts.push({x:p.x,y:p.y,k:'puzzle'})}
   // buildings
   /* every map draws its buildings from a shuffled list, so you see different kinds map to map; if one won't fit, the next kind is tried */
-  const nb=ty==='cave'?7:9,pool=def.blds.slice().sort(()=>r()-.5);let pi=0;for(let k=0;k<nb;k++)for(let tryB=0;tryB<pool.length;tryB++){const bt=pool[pi++%pool.length],B=BTYPES[bt];let placed=false;
+  const nb=ty==='cave'?5:6,pool=def.blds.slice().sort(()=>r()-.5);let pi=0;for(let k=0;k<nb;k++)for(let tryB=0;tryB<pool.length;tryB++){const bt=pool[pi++%pool.length],B=BTYPES[bt];let placed=false;
     for(let tries=0;tries<200;tries++){const bx=8+((r()*(ZS-16-B.fw))|0),by=8+((r()*(ZS-16-B.fh))|0),cx=bx+B.fw/2,cy=by+B.fh/2;if(!far(cx,cy,14))continue;
       let bad=false;for(let y=by-1;y<=by+B.fh+1&&!bad;y++)for(let x=bx-1;x<=bx+B.fw;x++)if(reserved(x,y))bad=true;if(bad)continue;
       const key=`z${zi}b${k}`,door={x:bx+(B.fw>>1),y:by+B.fh-1},nailed=k===nb-1&&r()<.85;L.blds.push({x:bx,y:by,bt,key,door,nailed});ar.ints[key]={bt,zi,door,key,nailed};
@@ -989,7 +997,6 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
      const o=[[0,1],[1,0],[-1,0],[0,-1]].map(([a,b])=>[x+a,y+b]).find(([a,b])=>!PROPAT[id(a,b)]&&!CHESTS[id(a,b)]&&a>0&&b>0&&a<MW-1&&b<MH-1);if(!o)continue;
      if(BLOCK[map[id(o[0],o[1])]])map[id(o[0],o[1])]=ty==='cave'?ROAD:G;bfsConnect(o[0],o[1],s,(a,b)=>reserved(a,b)||!!PROPAT[id(a,b)]||!!CHESTS[id(a,b)],setRoad);s=flood(true);ch++}
    if(ch)REACH=L.reach=s}
-  genSmalls(r,ty);
   genSpawns();
   return L}
 
@@ -1070,7 +1077,10 @@ function placeProps(r,ty){
      map's own special objects are never touched. */
   const VARY=['mound','stump','log','bush','owl','ring','cairn','glint','cart','satchel','cage','shrine','tent','totem','hollowlog','noticeboard','banner','coldcamp','mushring','spring','statue','idol','crow','skeleton','timber','crystal','frog','flowers','sheep','haystack','nest','chime','mudpot','geode','picnic','scare','bones','rocks'];
   const SKIP=new Set(),MUL={};for(const t of VARY){if(r()<.35)SKIP.add(t);MUL[t]=.5+r()}
-  const place=(t,fn,solid,extra,d)=>{if(SKIP.has(t)&&!(typeof NEWP!=='undefined'&&NEWP[t]))return null;for(let k=0;k<30;k++){const s=find(fn,d);if(!s)return null;if(solid&&!solidOK(s.x,s.y)){tiles.splice(tiles.indexOf(s),1);continue}return addProp(t,s.x,s.y,solid,extra?Object.assign({},extra):null)}return null};
+  const place=(t,fn,solid,extra,d)=>{if(SKIP.has(t)&&!(typeof NEWP!=='undefined'&&NEWP[t]))return null;
+    /* a clickable slot: same spot and count as always, but the type comes from this map's 20 */
+    let ce=null;if(LV.kind==='zone'&&t in CLICK_NAT&&(ce=clickPick(r,ty,LV.zi))){if(ce.n){t=ce.n;solid=!!CLICK_NAT[t];extra=t==='bush'?{bad:r()<.33}:null}else{t='sm';solid=false;extra={k:ce.k}}}
+    for(let k=0;k<30;k++){const s=find(fn,d);if(!s)return null;if(solid&&!solidOK(s.x,s.y)){tiles.splice(tiles.indexOf(s),1);continue}return addProp(t,s.x,s.y,solid,extra?Object.assign({},extra):null)}clickPutBack(ce);return null};
   const many=(t,n,fn,solid,extra,d)=>{if(MUL[t])n=Math.max(1,Math.round(n*MUL[t]));for(let k=0;k<n;k++)place(t,fn,solid,typeof extra==='function'?extra(k):extra,d)};
   /* the camp: anvil to one side of the fire, the stash to the other, Mortimer in front (not in Hardcore). Placed first so nothing else crowds it */
   if(LV.start&&LV.kind==='zone'){const f=LV.start,spot=(prefs,solid)=>{const ring=[];for(let rr=2;rr<=6;rr++)for(let a=0;a<16;a++)ring.push([Math.round(Math.cos(a*.39+.2)*rr),Math.round(1+Math.sin(a*.39+.2)*rr)]);
@@ -1940,6 +1950,7 @@ function fitTitle(){const t=document.querySelector('#title');if(!t||t.style.disp
   const rs=kids.map(e=>e.getBoundingClientRect()),top=Math.min(...rs.map(r=>r.top)),bot=Math.max(...rs.map(r=>r.bottom)),wid=Math.max(...rs.map(r=>r.width));
   const tr=t.getBoundingClientRect(),z=Math.min(1,(tr.height-24)/(bot-top)*.95,(tr.width-24)/wid);if(z<.999)t.style.zoom=Math.max(.45,z)}
 setInterval(()=>{if(typeof mode!=='undefined'&&mode==='title')fitTitle()},400);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>setTimeout(fitTitle,50));
+let OVB=0;
 function resize(){const r=$('#view').getBoundingClientRect(),dpr=window.devicePixelRatio||1;if(r.width<10||r.height<10)return;{const lb=$('#logb'),pp=$('#ppanel');if(lb&&pp){const want=matchMedia('(orientation:landscape) and (max-height:640px)').matches?pp:$('#bui');if(lb.parentNode!==want)want.appendChild(lb)}}if(typeof placeTabs==='function')setTimeout(placeTabs,0);setTimeout(fitTitle,0);
   /* ONE LOOK EVERYWHERE. The screen's short side always shows the same number of game pixels (VIEW_W in the world, VIEW_B in battle), so the
      world, the knight and every creature are the same size relative to the screen on every phone, in either orientation. That makes the scale S
@@ -1950,6 +1961,8 @@ function resize(){const r=$('#view').getBoundingClientRect(),dpr=window.devicePi
   /* indoors: zoom out (up to a third) so more of the room fits; the knight stops looking enormous next to the furniture */
   if(!B&&LV&&LV.kind==='interior'){const fit=Math.min(r.width*dpr/(LV.MW*T),r.height*dpr/(LV.MH*T));S=Math.max(S*.66,Math.min(S,fit))}KK=Math.min(4,HDK*Math.max(1,Math.ceil(S/HDK-.001)));
   W=Math.ceil(r.width*dpr/S);H=Math.ceil(r.height*dpr/S);
+  /* how much of the bottom of the view the see-through controls cover, in game pixels (the camera keeps the knight centred in what is left) */
+  const cc=$('#controls');OVB=(!B&&cc&&getComputedStyle(cc).position==='absolute'&&!matchMedia('(orientation:landscape) and (max-height:640px)').matches)?Math.round(cc.getBoundingClientRect().height*dpr/S):0;
   cv.width=W*KK;cv.height=H*KK;cv.style.width=(W*S/dpr)+'px';cv.style.height=(H*S/dpr)+'px';cv.style.imageRendering=KK>=S?'auto':'pixelated';dk.width=W;dk.height=H;ctx.setTransform(KK,0,0,KK,0,0);ctx._hd=true;ctx.imageSmoothingEnabled=false;BG=null;VIG=null}
 addEventListener('resize',()=>setTimeout(resize,60));
 addEventListener('orientationchange',()=>setTimeout(resize,250));
@@ -2284,7 +2297,6 @@ function findUse(){const fx=P.x+FD[P.face][0]*10,fy=P.y-5+FD[P.face][1]*10,bx=P.
   else for(let x=0;x<MW;x++)if(map[id(x,MH-1)]===IDOOR)consider({exitDoor:1},x*T+8,(MH-1)*T+4,2);
   for(const c of chests)if(!c.open&&!c.veil&&Math.abs(c.x*T+8-bx)<40&&Math.abs(c.y*T+8-by)<40)consider({chest:c},c.x*T+8,c.y*T+9,2);
   for(const p of props){if(Math.abs(p.x-bx)>40||Math.abs(p.y-by)>40)continue;const u=usable(p);if(u)consider({prop:p},p.x,p.y,u)}
-  for(const o of SMALLS){if(o.used||Math.abs(o.x-bx)>30||Math.abs(o.y-by)>30)continue;consider({sm:o},o.x,o.y,1)}
   return best}
 /* a cache at the end of a dead end: found by pressing Use (or striking) right there */
 function takeCache(tx,ty){if(!LV.caches)return false;const c=LV.caches.find(c=>!c.got&&Math.abs(c.x-tx)<=1&&Math.abs(c.y-ty)<=1);if(!c)return false;c.got=1;rec('caches',1);
@@ -2292,7 +2304,7 @@ function takeCache(tx,ty){if(!LV.caches)return false;const c=LV.caches.find(c=>!
   for(let k=0;k<14;k++)particles.push({x:c.x*T+8,y:c.y*T+8,vx:(Math.random()-.5)*30,vy:-10-Math.random()*25,g:20,life:1,c:'#ffe8a0',w:'spark'});
   notice('Wedged into the very end of the passage:'+grant(items,g).replace(/^You find /,''));return true}
 function doUse(){if(mode!=='world')return;const u=useT;if(!u){takeCache(Math.floor(P.x/T),Math.floor((P.y-3)/T));return}
-  if(u.o.fire)return fireDialog(u.o.fire);if(u.o.chest)return openChest(u.o.chest);if(u.o.gate)return useGateTool(u.o.gate);if(u.o.door)return useDoor(u.o.door);if(u.o.exitDoor)return leaveInterior();if(u.o.sm)return useSmall(u.o.sm);useProp(u.o.prop)}
+  if(u.o.fire)return fireDialog(u.o.fire);if(u.o.chest)return openChest(u.o.chest);if(u.o.gate)return useGateTool(u.o.gate);if(u.o.door)return useDoor(u.o.door);if(u.o.exitDoor)return leaveInterior();useProp(u.o.prop)}
 const GATE_HINT={brand:'A wall of brambles, thick as rope. A blade won\'t get through it.',powder:'The rock here is cracked right through. Blasting powder would open it.',hook:'Deep, still water. Too deep to wade. There is a post on the far side.',
   axe:'A dead tree has come down right across the way. Too big to climb, too heavy to shift.',crowbar:'Boards, nailed across the gap from the other side.',pole:'Mire. It sucks at your boot. It isn\'t far across, if you could get over it.',shovel:'The bank has come down here: a heap of earth and stones where the way used to be.',keys:'An iron gate, locked with a new padlock.'};
 function useGateTool(g){if(!P.tools[g.need]){toast(GATE_HINT[g.need],3200);return}
@@ -2332,8 +2344,10 @@ async function useProp(p){const t=pkey(p);if(NEWP[t])return NEWP[t].use(p);
     case'grindstone':{p.st=1;SFX.clang();P.sharp=3;notice('You work your blade on the old grindstone until the edge sings. (+2 Attack for your next three fights.)');break}
     case'coldcamp':{const c=await dialog('A cold campfire','A ring of stones and old ashes. Whoever camped here packed in a hurry.',['Search the ashes','Leave']);if(c!==0)break;p.st=1;const q=Math.random();
       if(q<.5)notice(rummage(tierHere(),chance(.5)?coinsFor():0,'Nothing but ash.'));else if(q<.75)notice(bagPick('camp',LORE.camp));else{P.st.burn=1;notice('The ashes are not as cold as they look. You are burning.')}break}
-    case'gallows':{const c=await dialog('A gallows','A gallows by the road with a new rope. A notice is nailed to the post.',['Read the notice','Search the body','Leave']);if(c===2)break;
-      if(c===0){await showEp('Nailed to the gallows',takeU('gallows',LORE.gallows)||'BY ORDER OF THE KING.');break}p.st=1;notice(rummage(tierHere(),coinsFor(),'Someone has already taken everything.'));break}
+    case'gallows':{/* reading the notice comes back to the gallows, not out to the world */
+      for(;;){const c=await dialog('A gallows','A gallows by the road with a new rope. A notice is nailed to the post.',['Read the notice','Search the body','Leave']);
+        if(c===0){if(!p.txt)p.txt=takeU('gallows',LORE.gallows)||'BY ORDER OF THE KING.';await showEp('Nailed to the gallows',p.txt);continue}
+        if(c===1){p.st=1;notice(rummage(tierHere(),coinsFor(),'Someone has already taken everything.'))}break}break}
     case'dovecote':{p.st=1;const t=LORE.letters[Math.min(LORE.letters.length-1,(window._letters=(window._letters||0)+1)-1)];SFX.caw(1.2);await showEp('A dovecote',t);break}
     case'toybox':{p.st=1;notice('A toy box, rotted through. Inside, under the mould, a wooden sword with two names carved into the hilt: yours and your brother\'s.'+grant(['woodsword']));break}
     case'axestump':{p.tries=(p.tries||0)+1;SFX.thunk();if(p.tries===1)notice('An axe, buried deep in an old stump. You pull. It does not move.');else if(p.tries===2)notice('You brace a boot against the stump and heave. Something creaks. It might be the stump. It might be you.');
@@ -2663,7 +2677,7 @@ function updProps(dt){
 function updCam(){const ww=MW*T,hh=MH*T;/* follow the player's ROUNDED position, so the knight's on-screen spot never flips a pixel back and forth as the camera and he round differently (the walking jitter) */
   /* the camera moves in half-pixel steps (the canvas is 2x, so still whole real pixels): cam.x/y stay whole numbers for all the drawing code, and the
      leftover half (cam.fx/fy) is applied once as a shift of the whole world layer. Everything that moves is drawn on the same half-pixel grid. */
-  const px=R2(P.x),py=R2(P.y),cx=ww<=W?Math.round((ww-W)/2):R2(clamp(px-W/2,0,ww-W)),cy=hh<=H?Math.round((hh-H)/2):R2(clamp(py-8-H/2,0,hh-H));
+  const px=R2(P.x),py=R2(P.y),cx=ww<=W?Math.round((ww-W)/2):R2(clamp(px-W/2,0,ww-W)),vh=H-OVB,cy=hh<=vh?Math.round((hh-vh)/2):R2(clamp(py-8-vh/2,0,hh-vh));
   cam.x=Math.floor(cx);cam.y=Math.floor(cy);cam.fx=cx-cam.x;cam.fy=cy-cam.y}
 function passable(px,py){const tx=Math.floor(px/T),ty=Math.floor(py/T);if(tx<0||ty<0||tx>=MW||ty>=MH)return false;const t=map[ty*MW+tx];return!BLOCK[t]&&t!==DOOR&&t!==IDOOR}
 function boxFree(x,y){return passable(x-4,y-4)&&passable(x+3,y-4)&&passable(x-4,y-1)&&passable(x+3,y-1)}
@@ -2759,7 +2773,6 @@ function drawWorld(){
       if(t===BOG&&hash(tx*3,ty)<.15&&((time*.7+hash(tx,ty)*9)%3)<.4){ctx.fillStyle='#4a6a3a';ctx.fillRect(tx*T+8-cam.x,ty*T+8-cam.y,2,2)}}
     else if(t===GATE){ctx.fillStyle=`rgba(255,230,180,${.12+Math.sin(time*2+tx+ty)*.06})`;ctx.fillRect(tx*T-cam.x,ty*T-cam.y,T,T)}}
   const vis=(x,y,m)=>x>cam.x-m&&x<cam.x+W+m&&y>cam.y-m&&y<cam.y+H+m;
-  drawSmalls();
   for(const p of props){if(p.solid||p.tree||p.t==='ring'||p.t==='flowers'||p.t==='sheep')continue;if(!vis(p.x,p.y,24))continue;const x=Math.round(p.x-cam.x),y=Math.round(p.y-cam.y);
     if(NEWP[p.t]&&NEWP[p.t].flat)NEWP[p.t].flat(p,x,y);else if(p.t==='corpse')ctx.drawImage(PS.corpse,x-7,y-2);else if(p.t==='mound')ctx.drawImage(p.st?PS.dug:PS.mound,x-6,y);
     else if(p.t==='frog')ctx.drawImage(PS.frog,x-2,y-(p.hop>0?3:0));else if(p.t==='fox'&&p.st<2)ctx.drawImage(p.st?(p.vx>0?PS.foxRun:PS.fox):PS.fox,x-5,y);
@@ -3199,7 +3212,8 @@ function qte(kind,f){return new Promise(res=>{const dur=kind==='atk'?560:620;B.q
   setTimeout(()=>{if(B&&B.qte&&!B.qte.done&&B.qte.res===res){B.qte.done=true;B.qte=null;res(false)}},dur+170)})}
 function qteTap(){if(!B||!B.qte||B.qte.done)return false;const q=B.qte,t=performance.now()-q.start,win=q.kind==='atk'?110:140,off=Math.abs(t-q.dur),ok=off<=win,perf=off<=(q.kind==='atk'?35:40);
   q.done=true;B.qf={ok,perf,kind:q.kind,t:0,early:t<q.dur-win,pos:q.kind==='atk'?(q.f&&q.f.pos):B.pPos};B.qte=null;q.res(perf?2:ok?1:0);return true}
-addEventListener('pointerdown',e=>{if(B&&B.qte){qteTap();e.preventDefault();e.stopPropagation()}},true);
+let qteArm=false;addEventListener('pointerdown',e=>{qteArm=false;if(B&&B.qte){qteArm=true;e.preventDefault();e.stopPropagation()}},true);
+addEventListener('pointerup',e=>{if(!qteArm)return;qteArm=false;e.preventDefault();e.stopPropagation();qteTap()},true);
 async function inflict(st,turns,msg){
   /* a foe that died to your Thorns or Riposte mid-attack doesn't get to leave anything on you */
   if(B&&B.cur&&(B.cur.dead||B.cur.hp<=0))return false;
@@ -3459,7 +3473,7 @@ function drawBattle(dt){if(!B){ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);return
       if(q.ok&&q.t<.15){ctx.strokeStyle=q.kind==='atk'?'#fff4c0':'#d8f4ff';ctx.beginPath();ctx.arc(o.x,o.y,9+q.t*120,0,7);ctx.stroke()}ctx.globalAlpha=1}else if(q.t>=.9)B.qf=null}
   const boss=B.foes.find(f=>f.k.boss&&!f.dead);if(boss&&boss.st.coiled){ctx.fillStyle=`rgba(120,20,10,${.12+Math.sin(time*8)*.06})`;ctx.fillRect(0,0,W,H)}
   ctx.drawImage(getVig(),0,0)}
-cv.addEventListener('pointerdown',e=>{if(scene!=='battle'||!B)return;if(!B.qte&&(typing||msgSkip)){msgTap();return}const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
+cv.addEventListener('pointerup',e=>{if(scene!=='battle'||!B)return;if(!B.qte&&(typing||msgSkip)){msgTap();return}const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
   B.foes.forEach((f,i)=>{if(!f.dead&&f.box&&x>=f.box.x-4&&x<=f.box.x+f.box.w+4&&y>=f.box.y-4&&y<=f.box.y+f.box.h+4){B.tgt=i;updBUI()}})});
 /* ================= WEAPON ARTS & FOE PROFILES =================
    Each weapon type has three arts besides the plain Slash. They cost nothing but damage:
@@ -3712,7 +3726,9 @@ function recSection(){const R=P.rec,n=k=>Math.round(R[k]||0),t=n('time'),hh=Math
     ['Damage dealt',fmt(n('dealt')),[],''],['Damage taken',fmt(n('taken')),[],''],['Hardest blow',fmt(n('best')),[],'Your biggest single hit.'],['Critical hits',fmt(n('crits')),[],''],
     ['Fires kindled',fmt(n('fires')),[],''],['Chests opened',fmt(n('chests')),[],''],['Hidden caches found',fmt(n('caches')),[],'Things tucked into the ends of dead ends.'],['Puzzles solved',fmt(n('puzzles')),[],''],['Things poked at',fmt(n('poked')),[],'Stumps, burrows, puddles, bottles…'],['Things found',fmt(n('found')),[],''],['Things used',fmt(n('used')),[],'Potions, bandages and the like.'],
     ['Gold earned',fmt(n('earned')),[],''],['Gold spent',fmt(n('spent')),[],''],['Gambles',fmt(n('gambles')),[],'Unknown things bought from Mortimer.']]]}
-function renderStats(sel){sel=sel||'#stwb';const S=statSections();if(sel==='#pk-stats')S.push(recSection());
+/* the run's records, opened from the main menu (like the bestiary); ✕ goes back to the menu */
+async function openRecord(){const [h,rows]=recSection();await dialog(h,`<div class="sts rec">${rows.map(([n,v,m,d])=>`<div class="str"${d?` data-tip="${esc(`<b>${n}</b><span class='fx'>${d}</span>`)}"`:''}><span>${n}</span><b>${v}${m.length?` <em>(${m[0]})</em>`:''}</b></div>`).join('')}</div>`,['Back'],true);gameMenu()}
+function renderStats(sel){sel=sel||'#stwb';const S=statSections();
   const html=`<div class="sth"><canvas id="sthc" width="16" height="16"></canvas><div><b>Paladin</b><span>Level ${P.lv} · ${WT_NAME[wType()]}</span></div></div>`+
     `<div class="sts"><div class="stsh">Attributes${P.apts>0&&!B?` · <em>${P.apts} point${P.apts>1?'s':''} to spend</em>`:''}</div>${ATTR.map(([k,n,d])=>`<div class="str" data-tip="${esc(`<b>${n} ${attr(k)}</b><span class='fx'>${d}</span><span class='wh'>Where it comes from</span><span class='ws'>${(P.attr[k]||0)} spent</span>${srcOf('a_'+k).map(x=>`<span class='ws'>${x}</span>`).join('')}`)}"><span>${n}</span><b style="margin-left:auto">${attr(k)}</b>${P.apts>0&&!B?`<i class="ap" data-attr="${k}">+</i>`:''}</div>`).join('')}</div>`+
     S.map(([h,rows])=>`<div class="sts"><div class="stsh">${h}</div>${rows.map(([n,v,m,d])=>`<div class="str" data-tip="${esc(`<b>${n}</b><span class='fx'>${d}</span>${m.length?`<span class='wh'>Where it comes from</span>${m.map(x=>`<span class='ws'>${x}</span>`).join('')}`:''}`)}"><span>${n}</span><b>${v}</b></div>`).join('')}</div>`).join('');
@@ -4354,11 +4370,13 @@ function pzUpdate(dt,vx,vy){if(!LV.rooms)return;pzPush(vx,vy,dt);
       /* inside the vault: it's yours, the gate stays up for good */
       if(Math.abs(ptx-R0.cx)<=1&&Math.abs(pty-R0.cy)<=1){R0.done=1;R0.open=1e9;rec('puzzles',1);SFX.chime()}
       else if(R0.open<=0){R0.open=0;const g=props.find(p=>p.t==='pzgate'&&p.room===ri);if(g)map[id(g.tx,g.ty)]=PROPT;SFX.thud();amb('The portcullis slams down.',1600)}}})}
-/* ================= SMALL THINGS (0.20) =================
-   The ground is full of things to poke at now: a few hundred per map, different in every region. Walk up, press Use.
+/* ================= CLICKABLE TYPES =================
+   Each area has 50 types of clickable: its own older props (mound, cart, idol...) plus the kinds below. A map's clickable slots
+   (as many as there always were) are filled from 20 types: the first map of an area picks from the first 20 of the area's pool,
+   the second from the first 35, the third from all 50. Walk up, press Use.
    Most of the time it is just something to look at. Sometimes there's a coin or a trinket in it, now and then something bites,
    and very occasionally something comes out of it that wants a fight.
-   They are stored compactly (LV.sm = [x, y, kind, used, ...]) so saves stay small. */
+   */
 
 /* outcome weights: [look, find, bite, fight, heal] */
 const SMK={
@@ -4470,20 +4488,209 @@ plains:[
    look:['A crow pinned to the ground with a single arrow, its wings spread.','Its eyes are gone.','You pull the arrow out and leave it.'],find:'In its claws, still clenched:'},
   {id:'brokenarrows',n:'Broken arrows',w:[4,2,0,0,0],spr:f=>{f('#6a4a2a',0,2,6,1);f('#6a4a2a',3,4,7,1);f('#6a4a2a',1,6,5,1);f('#a8a8b0',9,3,2,2);f('#e8e0d0',0,1,2,1)},
    look:['A volley came down here. Dozens of arrows, snapped and trodden in.','They all point back towards the castle.'],find:'You pull out the best of the heads:',fixed:'scrap'}]};
+/* ---- more kinds, so each area has 50 types of clickable in its pool (natives + these) ---- */
+SMK.woods.push(
+  {id:'fern',n:'Ferns',w:[5,1,0,0,0],spr:f=>{for(const a of[1,5,9]){f('#1e3a1c',a,2,3,7);f('#2e5a28',a+1,1,1,8)}},
+   look:['Bracken, waist high and brown at the tips.','The ferns close behind you as you push through.','Under the fronds the ground is bare and dry.'],find:'Caught in the stems:'},
+  {id:'feathers',n:'Scattered feathers',w:[5,1,0,0,0],spr:f=>{for(const[a,b]of[[1,2],[4,5],[7,1],[10,4],[6,7]])f('#9a9a92',a,b,2,1);f('#c8c8c0',5,3,1,1)},
+   look:['Pigeon feathers in a ring. A hawk ate here.','Grey feathers, and a spot of dried blood.','The wind has spread them over a few yards.'],find:'Among them:'},
+  {id:'sprung',n:'A sprung snare',w:[4,2,0,0,0],spr:f=>{f('#5a4028',2,6,1,3);f('#8a8a90',3,5,6,1);f('#8a8a90',8,4,1,2);f('#6a5a44',1,8,3,1)},
+   look:['The wire has snapped. Whatever it caught got away.','Fur on the wire. A fox, by the colour.','Nobody has checked it in weeks.'],find:'Hung on the peg:'},
+  {id:'woodpile',n:'A woodpile',w:[4,2,0,0,0],spr:f=>{f('#0a0806',0,3,13,6);for(let i=0;i<3;i++){f('#5a4028',1,3+i*2,11,2);f('#8a6a44',1+i,3+i*2,1,2);f('#8a6a44',10-i,3+i*2,1,2)}},
+   look:['Split logs, stacked to dry, never burned.','The bottom row has gone soft.','Somebody meant to come back for this before winter.'],find:'Tucked in the gap at the back:'},
+  {id:'charpit',n:'A charcoal pit',w:[4,2,0,0,0],spr:f=>{f('#1a1a18',0,3,13,6);f('#2a2a26',1,4,11,4);f('#3a3a34',3,3,7,2);f('#6a4a2a',5,2,2,1)},
+   look:['A burned-out charcoal mound, black to the depth of your arm.','The charcoal burners worked here for years.','The smell of old smoke is still in the soil.'],find:'Raking through the ash you turn up:',ore:1},
+  {id:'beetree',n:'Wild bees',w:[3,2,3,0,1],spr:f=>{f('#3e2a1a',3,0,5,10);f('#0a0604',5,3,2,3);f('#c9a24b',4,2,1,1);f('#c9a24b',8,4,1,1);f('#c9a24b',2,5,1,1)},
+   look:['Bees going in and out of a split in the trunk.','You can hear the hive humming inside the wood.'],bite:['They come out at you in a cloud. You run.'],heal:['You reach in for a piece of comb and get away with it.'],find:'Stuck in the wax:'},
+  {id:'pellets',n:'Owl pellets',w:[5,1,0,0,0],spr:f=>{for(const[a,b]of[[2,5],[6,6],[9,4]]){f('#5a5448',a,b,3,2);f('#c8c0b0',a+1,b,1,1)}},
+   look:['Grey pellets of fur and tiny bones. An owl roosts above.','You break one open. Three mouse skulls.','The roost is directly overhead.'],find:'In one of them, something hard:'},
+  {id:'deerbed',n:'A flattened hollow',w:[5,1,0,0,0],spr:f=>{f('#1e3a1c',0,2,13,7);f('#3a5a2a',2,3,9,5);f('#6a5a3a',4,4,5,3)},
+   look:['The grass is pressed flat and still warm. Deer slept here.','A deer bed, with a tuft of brown hair.','The deer heard you long before you saw this.'],find:'Pressed into the grass:'},
+  {id:'bracket',n:'Bracket fungus',w:[4,1,0,0,1],spr:f=>{f('#3e2a1a',0,0,4,10);for(const b of[2,5,8]){f('#c8a060',3,b,6,2);f('#8a6a3a',3,b+1,6,1)}},
+   look:['Shelves of fungus up the side of a dead birch.','Hard as wood. You could stand a cup on it.'],heal:['Tinder fungus. You chew a little the way the woodsmen do and the ache goes.'],find:'Wedged behind it:'},
+  {id:'blaze',n:'A blazed tree',w:[5,0,0,0,0],spr:f=>{f('#3e2a1a',4,0,5,10);f('#c8b088',5,3,3,3)},
+   look:['A square of bark cut away at head height. A path marker.','The blaze is old. The path it marked has grown over.','The next blaze is three trees on, just visible.']},
+  {id:'woodcross',n:'A wayside cross',w:[5,0,0,0,1],spr:f=>{f('#4a3424',6,0,2,10);f('#4a3424',3,2,8,2);f('#a82030',5,6,1,1)},
+   look:['A wooden cross by the path, the carving worn to nothing.','Someone has tied a red thread round the foot of it.','Travellers stopped here to pray before going deeper in.'],heal:['You kneel a moment at the cross and say the prayer for travellers.']},
+  {id:'tracks',n:'Tracks',w:[5,0,0,0,0],spr:f=>{for(let i=0;i<4;i++){f('#2a1c10',2+i*3,2+(i%2)*3,2,2)}},
+   look:['Boot prints, three men, heading north.','Wolf tracks over boot tracks. The wolves came after.','A horse, shod, going fast.']},
+  {id:'acorns',n:'A squirrel\'s hoard',w:[3,3,0,0,1],spr:f=>{f('#2a1c10',2,4,9,4);for(const[a,b]of[[3,5],[5,4],[7,5],[9,4]]){f('#8a5a2a',a,b,2,2);f('#5a3a1a',a,b,2,1)}},
+   look:['Acorns and beechnuts buried under the leaves.','Half of them have already sprouted.'],heal:['You crack a handful of beechnuts and eat them.'],find:'Buried with the nuts:'},
+  {id:'scat',n:'Wolf droppings',w:[5,0,0,0,0],spr:f=>{f('#3a3428',4,5,3,2);f('#4a4434',7,6,2,1);f('#c8c0b0',5,5,1,1)},
+   look:['Full of hair and splinters of bone. Fresh.','Grey and old. The pack moved on a while ago.','The wolves mark this path. They use it often.']},
+  {id:'rag',n:'A rag on a branch',w:[4,2,0,0,0],spr:f=>{f('#3e2a1a',0,2,13,1);f('#a82030',6,3,3,4);f('#7a1820',7,6,2,2)},
+   look:['A strip of red cloth tied to a twig. Someone marked their way.','It\'s been here so long the colour has run.','There\'s another one further on.'],find:'Knotted into it:'},
+  {id:'oldknife',n:'A rusted knife',w:[3,3,0,0,0],spr:f=>{f('#6a4a2a',2,5,4,1);f('#8a6a5a',6,5,6,1);f('#5a4a44',7,4,4,1)},
+   look:['The blade has rusted into the handle.','A skinning knife, worn thin with sharpening.'],find:'You pick it up. Under it:',fixed:'scrap'},
+  {id:'kettle',n:'A dented kettle',w:[4,2,0,0,0],spr:f=>{f('#0a0a08',2,3,9,6);f('#5a5a52',3,4,7,4);f('#3a3a34',4,2,5,2);f('#5a5a52',10,5,2,1)},
+   look:['A copper kettle, black from the fire.','There\'s still water in it, with leaves floating.','Someone camped here more than once.'],find:'Inside it:'},
+  {id:'smallgrave',n:'A small grave',w:[5,0,0,0,1],spr:f=>{f('#2a1c10',2,4,9,4);f('#4a3a24',3,4,7,3);for(const a of[3,6,9])f('#a8a8a0',a,3,1,1)},
+   look:['A child\'s grave, edged with white pebbles.','No name. A wooden spoon is pushed into the earth at the head.','The pebbles have been straightened recently.'],heal:['You stand by the grave a while and say a prayer for the child.']},
+  {id:'brambles',n:'Brambles',w:[2,1,3,0,2],spr:f=>{f('#1e3a1c',0,3,13,6);f('#3a1a1a',1,4,11,1);f('#3a1a1a',2,6,9,1);f('#2a0a10',4,3,1,1);f('#2a0a10',9,5,1,1)},
+   look:['Blackberry canes, thick as rope.','The thorns are long and hooked backwards.'],bite:['The thorns rip your hand open as you pull back.'],heal:['Late blackberries, sweet ones. You eat what you can reach.'],find:'Snagged on the thorns:'},
+  {id:'holly',n:'Holly',w:[4,1,1,0,0],spr:f=>{f('#0a1a0a',2,1,9,8);f('#1e4a1e',3,2,7,6);for(const[a,b]of[[4,3],[8,5],[6,6]])f('#c82020',a,b,1,1)},
+   look:['Holly, dark and glossy, berries bright red.','The birds leave holly berries until last.'],bite:['You brush it and the leaves cut you.'],find:'Deep in the leaves:'},
+  {id:'wasps',n:'A wasps\' nest',w:[2,0,4,1,0],spr:f=>{f('#3e2a1a',6,0,1,2);f('#8a7a5a',4,2,5,6);f('#6a5a44',4,4,5,1);f('#0a0604',6,7,1,1)},
+   look:['A paper nest hanging from a branch, the size of a head.'],bite:['A wasp gets you on the neck, then three more.'],fight:'spider'},
+  {id:'lanternw',n:'A broken lantern',w:[3,3,0,0,0],spr:f=>{f('#3a3a34',4,1,5,8);f('#8a7a44',5,3,3,4);f('#5a5a52',5,0,3,1)},
+   look:['The glass is cracked and the door hangs off.','A coach lantern. There\'s no road near here.'],find:'There\'s still something in the well:',fixed:'lampoil'},
+  {id:'beads',n:'A string of beads',w:[3,4,0,0,0],spr:f=>{for(let i=0;i<5;i++)f('#a88a5a',2+i*2,4+(i%2),1,1);f('#c8c0b0',12,5,1,1)},
+   look:['Prayer beads, the string rotted through.','Wooden beads, dark from handling.'],find:'You gather them up. With them:'},
+  {id:'hide',n:'A hunter\'s hide',w:[4,2,0,0,0],spr:f=>{f('#1e3a1c',1,2,11,7);f('#3e2a1a',2,3,9,1);f('#0a0806',5,5,3,2)},
+   look:['A screen of woven branches. A hunter waited here for deer.','The branches have dried brown. Nobody has used it this year.'],find:'On the ground behind the screen:'});
+SMK.cave.push(
+  {id:'stalag',n:'A broken stalactite',w:[5,1,0,0,0],spr:f=>{f('#0a0a0c',1,4,11,4);f('#7a7a80',2,5,9,2);f('#9a9aa0',3,4,4,1)},
+   look:['It fell from the roof and broke in three.','The roof above is full of them, wet and pointed.','It took a hundred lifetimes to grow.'],find:'Under the pieces:'},
+  {id:'drip',n:'A drip pool',w:[3,0,0,0,3],spr:f=>{f('#0a0a0c',1,3,11,5);f('#2a3a4a',2,4,9,3);f('#6a8aa0',5,4,2,1)},
+   look:['Water falls one drop at a time into a stone basin.','The water is very cold and very clear.'],heal:['You drink from the basin. It is the cleanest water for miles.']},
+  {id:'wheel',n:'A cart wheel',w:[4,2,0,0,0],spr:f=>{f('#3e2a1a',2,1,9,8);f('#0a0806',4,3,5,4);f('#3e2a1a',6,3,1,4);f('#3e2a1a',4,5,5,1);f('#6a6a70',2,1,9,1)},
+   look:['An iron-rimmed wheel off an ore cart.','Three spokes are snapped.'],find:'Jammed in the hub:',fixed:'scrap'},
+  {id:'rope',n:'A coil of rope',w:[4,2,0,0,0],spr:f=>{f('#6a5a3a',3,3,8,5);f('#8a7a4a',4,4,6,3);f('#4a3a24',6,5,2,1)},
+   look:['Hemp rope, rotted grey.','It parts in your hands when you pull it.','The end has been cut, not frayed.'],find:'Wrapped up in the coil:'},
+  {id:'minerhelm',n:'A miner\'s cap',w:[3,3,0,0,0],spr:f=>{f('#3a3428',3,4,8,4);f('#5a5040',4,3,6,2);f('#c9a24b',6,4,2,1)},
+   look:['A leather cap with a tallow candle stuck to the brim.','A name burned inside the band: MARTIN.'],find:'Inside the crown:'},
+  {id:'shovelb',n:'A shovel blade',w:[4,2,0,0,0],spr:f=>{f('#5a5a60',3,3,6,5);f('#3a3a40',3,7,6,1);f('#6a4a2a',5,1,2,2)},
+   look:['The handle has rotted away.','Worn to a curve by years of digging.'],find:'Under it:',fixed:'scrap'},
+  {id:'sootcross',n:'A chalked cross',w:[5,0,0,0,1],spr:f=>{f('#3a3a40',1,2,11,7);f('#c8c8c0',6,3,1,5);f('#c8c8c0',4,4,5,1)},
+   look:['A cross chalked on the floor where two tunnels meet. The miners marked the safe way like this.','Beside it, smaller crosses, rubbed half away. One for each man lost.','The chalk is fresh. Someone has redrawn it.'],heal:['You kneel at the cross as the miners did.']},
+  {id:'guano',n:'Bat droppings',w:[4,1,1,1,0],spr:f=>{f('#2a2820',1,4,11,4);f('#3a3428',2,5,9,2);f('#4a4434',4,4,3,1)},
+   look:['A heap of droppings, ankle deep.','The bats roost right above.'],bite:['The smell makes you retch.'],find:'Half buried in it:',fight:'bat'},
+  {id:'stillpool',n:'A still pool',w:[5,1,0,0,0],spr:f=>{f('#0a0a0c',0,2,13,6);f('#1a2a3a',1,3,11,4);f('#e8e8f0',6,4,1,1)},
+   look:['Black water, perfectly still. A pale fish turns in it.','You can\'t see the bottom.','Your lantern shows nothing under the surface.'],find:'At the edge, in the shallows:'},
+  {id:'shards',n:'Loose crystal',w:[3,4,0,0,0],spr:f=>{for(const[a,b]of[[2,4],[5,2],[8,5]]){f('#3a6aa0',a,b,2,4);f('#8ac0f0',a,b,1,2)}},
+   look:['Blue crystal, knocked loose from the wall.','It gives off a faint light of its own.'],find:'You prise some free:',ore:1},
+  {id:'keg',n:'An empty powder keg',w:[4,2,0,0,0],spr:f=>{f('#3e2a1a',3,1,7,8);f('#6a6a70',3,2,7,1);f('#6a6a70',3,7,7,1);f('#0a0806',6,1,1,1)},
+   look:['A powder keg with the bung knocked out. Empty.','Black grains in the cracks of the staves.'],find:'Rolled into the bottom:'},
+  {id:'tinbox',n:'A tin box',w:[2,5,0,0,0],spr:f=>{f('#6a6a70',3,4,8,4);f('#8a8a90',3,4,8,1);f('#3a3a40',6,5,2,1)},
+   look:['A snuff tin. Empty.'],find:'You work the lid off. Inside:',gold:1},
+  {id:'bucket',n:'A bucket',w:[5,1,0,0,0],spr:f=>{f('#3e2a1a',3,2,7,7);f('#5a4028',4,3,5,5);f('#6a6a70',3,4,7,1);f('#6a6a70',4,0,5,1)},
+   look:['A bucket for bailing. The bottom is out.','Black water stands in it.'],find:'At the bottom:'},
+  {id:'benchstone',n:'A worn seat',w:[5,0,0,0,1],spr:f=>{f('#0a0a0c',1,3,11,5);f('#5a5a58',2,4,9,3);f('#7a7a78',3,4,7,1)},
+   look:['A flat stone, polished smooth by men sitting on it.','The miners ate here. Crumbs of old bread in the cracks.'],heal:['You sit and rest on the stone a while.']},
+  {id:'claypipe',n:'A clay pipe',w:[3,3,0,0,0],spr:f=>{f('#c8c0b0',2,5,7,1);f('#c8c0b0',8,3,2,3);f('#2a2a28',8,3,2,1)},
+   look:['A clay pipe, the stem snapped short.','There\'s still a plug of tobacco in the bowl.'],find:'Beside it:'},
+  {id:'bonedice',n:'Bone dice',w:[2,4,0,0,0],spr:f=>{f('#d8d0c0',3,4,3,3);f('#d8d0c0',7,5,3,3);f('#0a0a0a',4,5,1,1);f('#0a0a0a',8,6,1,1)},
+   look:['Two dice, both showing six. Weighted.'],find:'Next to them, the stakes:',gold:1},
+  {id:'pallet',n:'A straw pallet',w:[4,2,1,0,0],spr:f=>{f('#3a3428',1,4,11,4);f('#8a7a4a',2,4,9,3);f('#6a5a3a',2,6,9,1)},
+   look:['Straw in a sack, flattened by a sleeper.','Someone slept down here so as not to waste the climb.'],bite:['Fleas. Dozens of them.'],find:'Stuffed in with the straw:'},
+  {id:'canary',n:'A canary cage',w:[5,1,0,0,0],spr:f=>{f('#8a7a44',4,1,5,7);f('#0a0806',5,2,3,5);f('#c9a24b',6,5,1,1)},
+   look:['A small cage. The bird in it died long ago.','The miners carried these to warn them of bad air.','The door is shut. Nobody let it out.'],find:'On the floor of the cage:'},
+  {id:'prayerwall',n:'A prayer stone',w:[5,0,0,0,1],spr:f=>{f('#0a0a0c',2,3,9,6);f('#6a6a68',3,4,7,4);for(let i=0;i<2;i++)f('#2a2a28',4,5+i*2,5,1)},
+   look:['A flat stone laid on the floor, cut with a prayer: KEEP US IN THE DARK, AND BRING US UP.','A prayer for the drowned, and nine names.','The letters were cut by someone who could barely write.'],heal:['You read the prayer aloud.']},
+  {id:'wedges',n:'Iron wedges',w:[3,3,0,0,0],spr:f=>{f('#5a5a60',2,5,4,2);f('#5a5a60',7,4,4,3);f('#8a8a90',7,4,1,3)},
+   look:['Splitting wedges, still driven into a crack.','They\'ve rusted fast into the rock.'],find:'You knock one loose. Behind it:',fixed:'scrap'},
+  {id:'wicktin',n:'A tin of wicks',w:[3,4,0,0,0],spr:f=>{f('#6a6a70',4,4,6,4);f('#e8e0c0',5,3,1,2);f('#e8e0c0',7,3,1,2)},
+   look:['Cotton wicks, rolled and ready.'],find:'Inside the tin:',fixed:'candlestub'},
+  {id:'slag',n:'A slag heap',w:[3,4,0,0,0],spr:f=>{f('#1a1a18',0,3,13,6);f('#3a3430',1,4,11,4);f('#6a3a2a',4,4,2,1);f('#6a3a2a',8,5,2,1)},
+   look:['Waste rock from the workings.','Rust-red stains run through it.'],find:'Picking through it:',ore:1},
+  {id:'crackbats',n:'A hole in the floor',w:[4,1,0,2,0],spr:f=>{f('#3a3a40',1,2,11,7);f('#0a0a0a',3,3,7,5);f('#1a1a1c',4,3,5,1)},
+   look:['A hole in the floor, wide as a barrel. Something rustles down there.','Cold air comes up out of it.'],find:'You lie flat and reach in. You find:',fight:'bat'});
+SMK.swamp.push(
+  {id:'bulrush',n:'Bulrushes',w:[5,1,0,0,0],spr:f=>{for(const a of[2,5,8,11]){f('#3a4a2a',a,2,1,8);f('#5a3a1a',a,1,1,3)}},
+   look:['Bulrushes taller than you, brown heads splitting.','The rushes rattle when the wind moves.','A coot calls somewhere in them.'],find:'Caught in the stalks:'},
+  {id:'punt',n:'A punt pole',w:[4,2,0,0,0],spr:f=>{f('#6a4a2a',0,5,13,1);f('#3a4a3a',0,6,13,2)},
+   look:['A punt pole sticking out of the mud at a slant.','The boat it belonged to is somewhere under the water.'],find:'Hooked on the end:'},
+  {id:'eeltrap',n:'A wicker eel trap',w:[3,2,2,0,0],spr:f=>{f('#6a5a3a',2,3,9,5);f('#4a3a24',3,4,7,3);f('#0a0806',10,5,1,1)},
+   look:['A wicker trap, staked out in the shallows.','Empty. Something tore the wicker.'],bite:['An eel lunges out as you lift it and bites your wrist.'],find:'Inside it:'},
+  {id:'peat',n:'A peat stack',w:[4,2,0,0,0],spr:f=>{f('#1a1208',1,3,11,6);for(let i=0;i<3;i++)f('#3a2a1a',2+i*3,3+(i%2),3,4)},
+   look:['Cut peat, stacked to dry. It never dried.','The cutter\'s spade marks are still in each block.'],find:'Between the turfs:'},
+  {id:'heron',n:'A dead heron',w:[5,1,0,0,0],spr:f=>{f('#8a8a92',3,4,7,3);f('#8a8a92',9,2,1,3);f('#c8a040',9,1,3,1);f('#5a5a62',2,7,2,1)},
+   look:['A heron, dead in the mud, neck bent back.','Something ate the eyes and left the rest.'],find:'Beside it:'},
+  {id:'marigold',n:'Marsh marigolds',w:[2,0,0,0,4],spr:f=>{f('#1e3a1c',1,4,11,5);for(const[a,b]of[[2,3],[6,4],[9,3]])f('#e8c030',a,b,2,2)},
+   look:['Bright yellow flowers in the black mud.'],heal:['The fen-women boil the leaves for aches. You chew one. It helps.']},
+  {id:'net',n:'A torn net',w:[4,2,0,0,0],spr:f=>{for(let i=0;i<4;i++){f('#6a6a5a',1+i*3,2,1,7);f('#6a6a5a',1,2+i*2,12,1)}},
+   look:['A fishing net, torn and caught on a root.','The weights are still on it.'],find:'Tangled in the mesh:'},
+  {id:'willowman',n:'A willow figure',w:[5,0,0,0,1],spr:f=>{f('#8a7a4a',6,1,1,8);f('#8a7a4a',3,3,7,1);f('#8a7a4a',5,0,3,1);f('#a82030',6,4,1,1)},
+   look:['A little man of bound willow twigs, stuck in the bank.','The fen-folk leave these for the drowned.','A thread of red wool is wound round its middle.'],heal:['You leave it standing and say a word for the drowned.']},
+  {id:'childshoe',n:'A child\'s shoe',w:[5,1,0,0,0],spr:f=>{f('#3a2a1a',4,5,6,3);f('#5a4028',4,5,6,1);f('#2a1c10',9,6,2,2)},
+   look:['A small leather shoe, the buckle gone.','It was mended twice at the toe.','There is no second shoe.'],find:'Stuffed inside it:'},
+  {id:'cup',n:'A pewter cup',w:[2,4,0,0,0],spr:f=>{f('#7a7a80',4,3,5,5);f('#9a9aa0',4,3,5,1);f('#7a7a80',9,4,1,2)},
+   look:['A pewter cup, dented, half full of mud.'],find:'You tip it out:'},
+  {id:'bogcotton',n:'Bog cotton',w:[5,0,0,0,0],spr:f=>{for(const a of[2,5,8,11]){f('#3a4a2a',a,4,1,6);f('#e8e8e0',a-1,2,3,2)}},
+   look:['White tufts nodding over the wettest ground. Keep away from it.','Bog cotton grows where the mud is deepest.']},
+  {id:'snails',n:'Snail shells',w:[5,1,0,0,0],spr:f=>{for(const[a,b]of[[2,5],[6,4],[9,6]]){f('#8a6a3a',a,b,2,2);f('#c8a060',a,b,1,1)}},
+   look:['Empty snail shells, cracked open on a stone.','A thrush has been eating here.'],find:'Among them:'},
+  {id:'turtleshell',n:'A turtle shell',w:[4,2,0,0,0],spr:f=>{f('#2a3a1a',2,3,9,5);f('#4a5a2a',3,3,7,4);f('#2a3a1a',6,3,1,4)},
+   look:['A mud turtle\'s shell, empty and clean.','It\'s as big as a shield.'],find:'Underneath it:'},
+  {id:'plank',n:'A rotten plank',w:[3,2,2,0,0],spr:f=>{f('#3e2a1a',0,4,13,3);f('#5a4028',0,4,13,1);f('#0a0806',4,5,1,1)},
+   look:['A plank from an old boardwalk. The rest has sunk.','Soft as cheese. It wouldn\'t hold a cat.'],bite:['You step on it and it breaks. Your leg goes into the mud and something bites it.'],find:'Under it:'},
+  {id:'float',n:'A gourd float',w:[4,2,0,0,0],spr:f=>{f('#c8a060',4,3,5,5);f('#8a6a3a',5,2,3,1);f('#5a4028',6,1,1,1)},
+   look:['A dried gourd tied to a line. A net float.','The line goes down into the water and stays there.'],find:'You haul up the line:'},
+  {id:'hagstone',n:'A holed stone',w:[4,1,0,0,1],spr:f=>{f('#0a0a0c',3,2,7,6);f('#6a6a64',4,3,5,4);f('#0a0a0c',6,4,1,2)},
+   look:['A stone with a hole worn through it by water.','The fen-folk say you can see the truth through one.'],heal:['You look through the hole across the fen, and feel steadier.'],find:'Beside it:'},
+  {id:'fishrack',n:'A drying rack',w:[4,2,0,0,0],spr:f=>{f('#4a3424',2,1,1,8);f('#4a3424',10,1,1,8);f('#4a3424',2,2,9,1);for(const a of[4,6,8])f('#8a8a7a',a,3,1,3)},
+   look:['A rack of fish, dried hard and black.','Flies, mostly.'],find:'Hung with the fish:'},
+  {id:'midges',n:'Midges',w:[2,0,5,0,0],spr:f=>{for(const[a,b]of[[3,2],[5,4],[8,3],[6,6],[10,5],[4,7]])f('#2a2a28',a,b,1,1)},
+   look:['A cloud of midges over the water.'],bite:['They cover your face and neck. You come away covered in bites.']},
+  {id:'hat',n:'A floating hat',w:[4,2,0,0,0],spr:f=>{f('#1a2a3a',0,5,13,4);f('#3a2a1a',3,4,7,2);f('#3a2a1a',5,2,3,2)},
+   look:['A felt hat, floating in a pool, turning slowly.','There\'s nobody under it. You check.'],find:'Pinned in the band:'},
+  {id:'reedcross',n:'A marker in the reeds',w:[5,0,0,0,1],spr:f=>{f('#4a3424',6,1,1,8);f('#4a3424',4,3,5,1);f('#3a4a2a',2,6,9,3)},
+   look:['A grave marker of two sticks, half sunk.','No name. Just a notch for each year of life. Seven.','The reeds have been cut back around it.'],heal:['You straighten the marker and say the prayer for the dead.']},
+  {id:'duckweed',n:'Duckweed',w:[5,1,0,0,0],spr:f=>{f('#1a2a1a',0,3,13,5);for(let i=0;i<7;i++)f('#4a8a2a',1+i*2,4+(i%2),1,1)},
+   look:['A green skin over still water. It looks like solid ground.','You prod it with your sword. The blade goes straight through.'],find:'Something hard just under the weed:'},
+  {id:'fishhead',n:'A fish head',w:[5,0,1,0,0],spr:f=>{f('#8a8a7a',4,4,5,3);f('#5a5a4a',8,4,1,3);f('#0a0a0a',5,5,1,1)},
+   look:['A pike\'s head, as long as your forearm.','Something big ate the rest.'],bite:['You turn it over with your boot. The teeth catch your ankle.']},
+  {id:'rushlight',n:'Rushlights',w:[3,4,0,0,0],spr:f=>{for(const a of[3,6,9])f('#c8b078',a,2,1,7);f('#6a5a3a',2,8,9,1)},
+   look:['Peeled rushes dipped in fat. A poor man\'s candles.'],find:'Bundled with them:',fixed:'candlestub'},
+  {id:'bladder',n:'A bladder float',w:[4,2,0,0,0],spr:f=>{f('#c8a890',4,3,5,4);f('#a88870',5,6,3,1);f('#5a4028',6,2,1,1)},
+   look:['A pig\'s bladder, blown up and tied off. A child\'s ball, or a float.','It still bobs when you push it under.'],find:'Tied to the neck of it:'},
+  {id:'sinkhole',n:'A sinkhole',w:[2,1,2,2,0],spr:f=>{f('#1a1208',1,2,11,6);f('#0a0806',3,3,7,4);f('#2a3a2a',5,4,3,1)},
+   look:['A round hole of black water. It goes down a long way.'],bite:['The edge gives way under you.'],find:'At the edge, half in the water:',fight:'leech'});
+SMK.plains.push(
+  {id:'scythe',n:'A scythe blade',w:[3,3,0,0,0],spr:f=>{f('#8a8a90',2,3,9,1);f('#8a8a90',10,4,2,1);f('#6a4a2a',1,4,2,1)},
+   look:['A scythe blade without its snath.','Left in the field when the reapers ran.'],find:'Lying beside it:',fixed:'scrap'},
+  {id:'milestone',n:'A milestone',w:[5,0,0,0,1],spr:f=>{f('#0a0a0c',4,1,5,8);f('#8a8a84',5,2,3,6);f('#2a2a28',5,4,3,1)},
+   look:['A milestone: CASTLE 9.','Carved in your grandfather\'s time, when the road was new.','The crown on it has been chipped smooth.'],heal:['You rest your back against the stone a while.']},
+  {id:'trough',n:'A water trough',w:[3,1,0,0,3],spr:f=>{f('#4a4a48',1,4,11,4);f('#2a3a4a',2,4,9,2)},
+   look:['A stone trough, green with slime.'],heal:['You splash your face and drink.'],find:'At the bottom of the trough:'},
+  {id:'fence',n:'A broken fence',w:[5,1,0,0,0],spr:f=>{for(const a of[1,6,11])f('#5a4028',a,2,1,7);f('#6a4a2a',1,4,6,1);f('#6a4a2a',6,6,6,1)},
+   look:['A sheep fence, kicked down.','The rails were taken for firewood.','The field beyond it is empty.'],find:'Hanging on a post:'},
+  {id:'pitchfork',n:'A pitchfork',w:[4,2,0,0,0],spr:f=>{f('#6a4a2a',0,5,9,1);f('#8a8a90',9,3,3,1);f('#8a8a90',9,5,3,1);f('#8a8a90',9,7,3,1);f('#8a8a90',9,3,1,5)},
+   look:['A pitchfork driven into the ground, tines up.','The farmers had nothing better to fight with.'],find:'At its foot:'},
+  {id:'ruts',n:'Cart ruts',w:[5,0,0,0,0],spr:f=>{f('#3a2a1a',0,3,13,1);f('#3a2a1a',0,7,13,1)},
+   look:['Deep ruts, full of water. Heavy wagons came this way.','Supply wagons for the army, going towards the castle.']},
+  {id:'scarehat',n:'A fallen hat',w:[4,2,0,0,0],spr:f=>{f('#3a3020',2,5,9,2);f('#4a4030',4,2,5,3)},
+   look:['A straw hat, blown off a scarecrow.','It was a good hat once.'],find:'Tucked inside the band:'},
+  {id:'larknest',n:'A lark\'s nest',w:[4,1,0,0,2],spr:f=>{f('#6a5a3a',3,4,7,3);f('#4a3a24',4,5,5,1);f('#c8b898',5,4,1,1);f('#c8b898',7,4,1,1)},
+   look:['A lark\'s nest in a hoof print, three speckled eggs.','The lark is singing high above you.'],heal:['You take one egg and leave the rest. You eat it raw.']},
+  {id:'quern',n:'A quern stone',w:[4,2,0,0,0],spr:f=>{f('#0a0a0c',2,3,9,5);f('#7a7a72',3,4,7,3);f('#3a3a34',6,5,1,1)},
+   look:['A hand mill for grain. The upper stone is cracked.','Every farm had one. Somebody carried this out and dropped it.'],find:'Under the stone:'},
+  {id:'boundary',n:'A boundary stone',w:[5,0,0,0,0],spr:f=>{f('#0a0a0c',5,2,3,7);f('#8a8a84',6,3,1,5)},
+   look:['A boundary stone between two farms. Neither farm is there now.','Carved with two sets of initials.']},
+  {id:'tabard',n:'A trampled tabard',w:[4,2,0,0,0],spr:f=>{f('#1a3a7a',3,2,7,7);f('#c9a24b',5,4,3,2);f('#2a1c10',3,7,7,1)},
+   look:['A royal tabard, blue and gold, trodden into the mud.','The man who wore it had no use for it any more.'],find:'In the mud beside it:'},
+  {id:'drum',n:'A broken drum',w:[4,2,0,0,0],spr:f=>{f('#6a2020',3,3,7,5);f('#c8b898',3,3,7,1);f('#c9a24b',3,5,7,1)},
+   look:['A soldier\'s drum, the skin split.','It beat the march to Harrow\'s field.'],find:'Inside the shell:'},
+  {id:'spearhead',n:'A spearhead',w:[3,3,0,0,0],spr:f=>{f('#8a8a90',5,2,2,5);f('#6a6a70',5,7,2,1);f('#5a4028',5,8,2,1)},
+   look:['A spearhead, the shaft broken off at the socket.','There is blood dried on it, a long time ago.'],find:'Next to it:',fixed:'scrap'},
+  {id:'horseshoe',n:'A horseshoe',w:[2,4,0,0,0],spr:f=>{f('#6a6a70',3,3,1,5);f('#6a6a70',9,3,1,5);f('#6a6a70',3,7,7,1)},
+   look:['A horseshoe, thrown on the road.'],find:'You pick it up. Under it:'},
+  {id:'waterskin',n:'A waterskin',w:[2,1,0,0,4],spr:f=>{f('#6a4a2a',3,3,7,5);f('#8a6a3a',4,3,5,1);f('#3a2a1a',5,2,2,1)},
+   look:['A leather waterskin, dried out and cracked.'],heal:['There\'s still water in it. You drink it all.'],find:'Inside it:'},
+  {id:'soldiergrave',n:'A soldier\'s grave',w:[5,0,0,0,1],spr:f=>{f('#2a1c10',2,4,9,4);f('#4a3a24',3,4,7,3);f('#5a5a60',6,1,1,4);f('#5a5a60',5,2,3,1)},
+   look:['A mound with a sword pushed into it for a cross.','His comrades buried him where he fell.','Wild flowers have taken the mound.'],heal:['You bow your head over the grave.']},
+  {id:'standard',n:'A burnt standard',w:[4,2,0,0,0],spr:f=>{f('#4a3424',6,0,1,10);f('#1a1a18',7,1,5,4);f('#c9a24b',8,2,1,1)},
+   look:['A royal standard, burned to the pole.','A scrap of the crowned tower survives in one corner.'],find:'Wedged at its base:'},
+  {id:'thistle',n:'Thistles',w:[3,0,4,0,0],spr:f=>{for(const a of[2,6,10]){f('#3a5a2a',a,3,1,6);f('#8a4a8a',a-1,2,3,2)}},
+   look:['Thistles head high. The field has gone back to weed.'],bite:['You push through and come out scratched to the knees.']},
+  {id:'deadhorse',n:'A dead horse',w:[4,2,0,0,0],spr:f=>{f('#3a2a1a',1,4,11,4);f('#3a2a1a',10,2,3,3);f('#c8c0b0',4,4,4,1)},
+   look:['A cavalry horse, the saddle still on.','Crows have been at it for days.'],find:'In the saddlebag:'},
+  {id:'windfall',n:'An apple tree',w:[2,1,0,0,4],spr:f=>{f('#3e2a1a',6,4,1,5);f('#2a4a1e',3,0,7,5);for(const[a,b]of[[4,2],[8,1],[6,3],[3,8],[9,8]])f('#a83020',a,b,1,1)},
+   look:['An old apple tree in a lost orchard.'],heal:['Windfalls in the grass, bruised and sweet. You eat two.'],find:'Among the windfalls:'},
+  {id:'hareform',n:'A hare\'s form',w:[5,1,0,0,0],spr:f=>{f('#3a5a2a',1,3,11,6);f('#6a5a3a',4,4,5,3)},
+   look:['A dip in the grass where a hare lies up. Empty.','The hare is watching you from the next field.'],find:'In the grass:'},
+  {id:'yoke',n:'A broken yoke',w:[4,2,0,0,0],spr:f=>{f('#5a4028',0,4,13,2);f('#5a4028',2,6,1,3);f('#5a4028',10,6,1,3);f('#2a1c10',6,4,1,2)},
+   look:['An ox yoke, split down the middle.','The oxen were taken for the army\'s wagons.'],find:'Underneath:'},
+  {id:'messtin',n:'A mess tin',w:[2,4,0,0,0],spr:f=>{f('#6a6a70',3,4,8,3);f('#8a8a90',3,4,8,1);f('#6a6a70',11,5,2,1)},
+   look:['A soldier\'s mess tin, scraped clean.'],find:'Inside, wrapped in cloth:'},
+  {id:'niche',n:'A votive niche',w:[5,0,0,0,1],spr:f=>{f('#0a0a0c',3,0,7,10);f('#8a8a84',4,1,5,8);f('#2a2a28',5,3,3,4);f('#e8c060',6,5,1,1)},
+   look:['A niche in a wall with a small carved saint in it.','Someone has left a candle stub and a crust of bread.','The saint\'s hands are worn smooth by touching.'],heal:['You touch the saint\'s hands as the farmers did, and pray.']},
+  {id:'carcass',n:'A carcass',w:[2,1,0,3,0],spr:f=>{f('#5a3a2a',2,4,9,3);f('#c8c0b0',4,4,5,1);f('#0a0a0a',8,2,1,1);f('#0a0a0a',5,1,1,1)},
+   look:['A dead sheep. The crows lift off it when you come near.'],find:'Next to it:',fight:'crowswarm'});
+
 for(const ty in SMK)for(const k of SMK[ty])k.img=mk(14,10,k.spr);
 
-/* placement: called at the end of genZone. About 1 per 6 open tiles, never on roads, keeping off anything else */
-function genSmalls(r,ty){const kinds=SMK[ty];if(!kinds)return;const out=[],taken=new Set(),want=ty==='cave'?340:440;let n=0;
-  for(let k=0;k<want*12&&n<want;k++){const x=3+((r()*(MW-6))|0),y=3+((r()*(MH-6))|0),q=id(x,y);
-    if(!REACH[q]||(map[q]!==G&&map[q]!==MUD)||PROPAT[q]||CHESTS[q]||inPocket(x,y))continue;
-    let near=false;for(let dy=-1;dy<=1&&!near;dy++)for(let dx=-1;dx<=1;dx++)if(taken.has(id(x+dx,y+dy))){near=true;break}if(near)continue;
-    if(fires.some(f=>Math.abs(f.x-x)<=1&&Math.abs(f.y-y)<=1))continue;
-    const ki=(r()*kinds.length)|0;if(ty==='swamp'&&['reeds','lilies','spawn','eelhole','stake'].includes(kinds[ki].id)&&!nearType(x,y,[BOG,WATER,MUD],2))continue;
-    taken.add(q);out.push(x,y,ki,0);n++}
-  LV.sm=out}
-let SMALLS=[];
-function bindSmalls(){SMALLS=[];const L=LV;if(L.kind!=='zone')return;if(!L.sm)genSmalls(Math.random,L.type);const kinds=SMK[L.type];for(let i=0;i<L.sm.length;i+=4)SMALLS.push({i,x:L.sm[i]*T+8,y:L.sm[i+1]*T+10,k:kinds[L.sm[i+2]],used:L.sm[i+3]})}
-function useSmall(o){if(o.used)return;o.used=1;LV.sm[o.i+3]=1;rec('poked',1);const k=o.k,w=k.w,tot=w.reduce((a,b)=>a+b,0);let q=Math.random()*tot,c=0;while(q>=w[c]){q-=w[c];c++}
+function useSmall(p){if(p.st)return;if(!SMKI[p.k])p.k=pick(SMK[LV.type]||SMK.woods).id;p.st=1;rec('poked',1);const k=SMKI[p.k],w=k.w,tot=w.reduce((a,b)=>a+b,0);let q=Math.random()*tot,c=0;while(q>=w[c]){q-=w[c];c++}
   const t=tierHere();
   if(c===1){let items=[],g=0;if(k.gold)g=Math.max(2,Math.round(coinsFor()*1.5));else if(k.ore)items=[oreFor(t)];else if(k.fixed)items=[k.fixed];else if(chance(.45))g=Math.max(1,Math.round(coinsFor()*.5));else items=[chance(.15)?pick(['bitterleaf','bandage','lampoil']):pick(JUNK)];
     const s=grant(items,g);SFX.coin();amb(k.find+' '+s.replace(/^You find /,''),3400);return}
@@ -4491,7 +4698,26 @@ function useSmall(o){if(o.used)return;o.used=1;LV.sm[o.i+3]=1;rec('poked',1);con
   if(c===3&&k.fight){amb(pick(k.look),1500);setTimeout(()=>{if(mode==='world')fightNow(k.fight)},500);return}
   if(c===4&&k.heal){const h=Math.min(P.max-P.hp,Math.max(2,Math.round(P.max*.06)));P.hp+=h;SFX.heal&&SFX.heal();amb(pick(k.heal)+(h?` +${h} HP`:''),3200);return}
   amb(bagPick('sm_'+k.id,k.look),3000)}
-function drawSmalls(){for(const o of SMALLS){const x=Math.round(o.x-cam.x),y=Math.round(o.y-cam.y);if(x<-16||y<-16||x>W+16||y>H+16)continue;if(o.used)ctx.globalAlpha=.55;ctx.drawImage(o.k.img,x-7,y-6);ctx.globalAlpha=1}}
+
+const SMKI={};for(const ty in SMK)for(const k of SMK[ty]){if(SMKI[k.id])console.error('duplicate clickable id',k.id);SMKI[k.id]=k}
+/* the older props that count as clickable slots, the area each appears in, and whether it blocks movement */
+const CLICK_NAT={mound:0,cart:1,cage:1,tent:1,bush:1,totem:1,idol:1,axestump:1,hollowlog:1,stoneface:1,crevice:0,skeleton:0,mudpot:0,picnic:0,coldcamp:0,satchel:0,glint:0,mushring:0,spring:0,scare:1,hive:1,haystack:1,minecart:1};
+const CLICK_AREA={woods:['mound','cart','cage','tent','bush','totem','idol','axestump','hollowlog','stoneface','coldcamp','satchel','glint','mushring','spring','scare'],
+  cave:['mound','cart','cage','idol','crevice','skeleton','stoneface','coldcamp','satchel','glint','mushring','spring','minecart'],
+  swamp:['mound','cart','cage','tent','bush','totem','idol','mudpot','hollowlog','skeleton','coldcamp','satchel','glint','mushring','spring'],
+  plains:['mound','cart','cage','tent','bush','idol','picnic','coldcamp','satchel','glint','mushring','spring','scare','hive','haystack']};
+/* each area's pool of 50, in a fixed mixed order (the same every game), so the first map's 20 are a mix of old and new */
+const CPOOL={};{const h=s=>{let x=2166136261;for(const c of s)x=Math.imul(x^c.charCodeAt(0),16777619);return x>>>0};
+  for(const ty in CLICK_AREA)CPOOL[ty]=CLICK_AREA[ty].map(n=>({n})).concat(SMK[ty].map(k=>({k:k.id}))).sort((a,b)=>h(ty+(a.n||a.k))-h(ty+(b.n||b.k)))}
+/* the 20 types for this map, dealt from a shuffled deck so every one of them turns up before any repeats */
+let CDECK=null;
+function clickPick(r,ty,zi){const pool=CPOOL[ty];if(!pool)return null;
+  if(!CDECK||CDECK.L!==LV){const avail=pool.slice(0,zi<=0?20:zi===1?35:50).slice();for(let i=avail.length-1;i>0;i--){const j=(r()*(i+1))|0;[avail[i],avail[j]]=[avail[j],avail[i]]}
+    CDECK={L:LV,types:avail.slice(0,20),deck:[]};LV.ctypes=CDECK.types.map(e=>e.n||e.k)}
+  if(!CDECK.deck.length){CDECK.deck=CDECK.types.slice();for(let i=CDECK.deck.length-1;i>0;i--){const j=(r()*(i+1))|0;[CDECK.deck[i],CDECK.deck[j]]=[CDECK.deck[j],CDECK.deck[i]]}}
+  return CDECK.deck.pop()}
+function clickPutBack(e){if(CDECK&&e)CDECK.deck.push(e)}
+NEWP.sm={u:p=>p.st?0:1,flat:(p,x,y)=>{const k=SMKI[p.k];if(!k)return;if(p.st)ctx.globalAlpha=.55;ctx.drawImage(k.img,x-7,y-6);ctx.globalAlpha=1},use:async p=>useSmall(p)};
 
 /* ================= HUD / TOAST ================= */
 let toastTimer=null;
@@ -4525,9 +4751,10 @@ const instant=el=>el.classList.contains('si')||el.closest('.statg')||el.closest(
 document.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-tip]');
   if(tipOwner&&tipOwner!==el)hideTip();clearTimeout(tipTimer);
   if(!el||e.pointerType==='mouse')return;
-  if(instant(el)&&!el.classList.contains('hb')){if(tipOwner===el)hideTip();else showTip(el);return}
+  if(instant(el)&&!el.classList.contains('hb')){tipTap=el;return}
   tipTimer=setTimeout(()=>{showTip(el);tipSuppress=true;if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}},430)},true);
-document.addEventListener('pointerup',()=>clearTimeout(tipTimer),true);
+let tipTap=null;/* instant tips open when the finger lifts, on the same thing it went down on */
+document.addEventListener('pointerup',e=>{clearTimeout(tipTimer);const el=tipTap;tipTap=null;if(el&&e.target.closest('[data-tip]')===el){if(tipOwner===el)hideTip();else showTip(el)}},true);
 document.addEventListener('pointercancel',()=>clearTimeout(tipTimer),true);
 document.addEventListener('click',e=>{if(tipSuppress){tipSuppress=false;e.stopPropagation();e.preventDefault()}},true);
 document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse')return;const el=e.target.closest('[data-tip]');clearTimeout(tipTimer);if(!el){hideTip();return}if(el!==tipOwner)tipTimer=setTimeout(()=>showTip(el),220)});
@@ -4588,7 +4815,7 @@ function renderPack(){
     const x=$('#dollc').getContext('2d');x.clearRect(0,0,12,16);x.drawImage(KN.down[0],0,0);
   }
   else if(packTab==='bag'){let h='';const tk=Object.keys(P.tools);$('#toolrow').innerHTML=tk.length?'<div class="tl">Tools</div>'+tk.map(k=>`<div class="slot" data-tip="${esc(itemTip('t_'+k))}"><img src="${icon('t_'+k)}"></div>`).join(''):'';
-    for(let i=0;i<BAG_MAX;i++){const b=P.bag[i];if(!b){h+='<div class="slot empty"></div>';continue}const it=ITEMS[b.id];
+    const SL=bagSlots();for(let k=0;k<BAG_MAX;k++){const i=SL[k],b=P.bag[i];if(!b){h+='<div class="slot empty"></div>';continue}const it=ITEMS[b.id];
       h+=`<div class="slot${sel&&sel.src==='bag'&&sel.i===i?' sel':''}" data-i="${i}" data-tip="${esc(itemTip(b.id))}" style="border-color:${RARITY[it.r].c}77"><img src="${icon(b.id)}">${b.n>1?`<i class="n">${b.n}</i>`:''}${b.lk?'<i class="lk"></i>':''}</div>`}
     $('#bag').innerHTML=h;bagDrag()}
   else if(packTab==='tal'){
@@ -4604,18 +4831,25 @@ function renderPack(){
   else if(pan==='trade')renderTrade();
   $('#pack .pk').classList.toggle('logm',packTab==='log'||packTab==='stats');
   renderDet()}
+/* locked items keep the slot they were locked in; everything else fills the remaining slots in bag order */
+function bagSlots(){const L=new Array(BAG_MAX).fill(-1);
+  P.bag.forEach((b,i)=>{if(!b.lk)return;let p=b.p;if(p==null||p>=BAG_MAX||L[p]>=0){p=L.indexOf(-1);b.p=p}L[p]=i});
+  let k=0;P.bag.forEach((b,i)=>{if(b.lk)return;while(L[k]>=0)k++;L[k]=i});return L}
 /* drag an item onto another slot to swap them (or onto an empty slot to move it to the end); a tap still selects */
 let drag=null;
-function bagDrag(){const slots=[...$('#bag').children];slots.forEach((el,i)=>{el.dataset.k=i;
-  el.onpointerdown=e=>{if(!P.bag[i])return;e.preventDefault();drag={i,x:e.clientX,y:e.clientY,on:false,pid:e.pointerId,el};}});}
+function bagDrag(){const slots=[...$('#bag').children],SL=bagSlots();slots.forEach((el,k)=>{el.dataset.k=k;const i=SL[k];
+  el.onpointerdown=e=>{if(i<0||!P.bag[i])return;e.preventDefault();drag={i,x:e.clientX,y:e.clientY,on:false,pid:e.pointerId,el};}});}
 document.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.on&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){drag.on=true;hideTip();tipSuppress=true;
     const g=document.createElement('img');g.id='dragg';g.src=icon(P.bag[drag.i].id);document.body.appendChild(g);drag.el.style.opacity=.35}
   if(drag.on){const g=$('#dragg');g.style.left=(e.clientX-20)+'px';g.style.top=(e.clientY-20)+'px'}});
 document.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;const g=$('#dragg');if(g)g.remove();tipSuppress=false;
   if(!d.on){sel={src:'bag',i:d.i};renderPack();return}
   const t=document.elementFromPoint(e.clientX,e.clientY),sl=t&&t.closest('#bag > div');if(!sl){renderPack();return}
-  let j=+sl.dataset.k;if(j>=P.bag.length)j=P.bag.length-1;if(j!==d.i){const a=P.bag;[a[d.i],a[j]]=[a[j],a[d.i]];SFX.thunk&&SFX.thunk()}
-  if(sel&&sel.src==='bag'){if(sel.i===d.i)sel.i=j;else if(sel.i===j)sel.i=d.i}renderPack()});
+  const a=P.bag,SL=bagSlots(),j=SL[+sl.dataset.k];
+  if(a[d.i].lk||(j>=0&&a[j].lk)){if(j!==d.i)pflash('Locked things stay where they are. Unlock it to move it.');renderPack();return}
+  if(j<0){a.push(a.splice(d.i,1)[0]);SFX.thunk&&SFX.thunk();if(sel&&sel.src==='bag')sel=null}
+  else if(j!==d.i){[a[d.i],a[j]]=[a[j],a[d.i]];SFX.thunk&&SFX.thunk();if(sel&&sel.src==='bag'){if(sel.i===d.i)sel.i=j;else if(sel.i===j)sel.i=d.i}}
+  renderPack()});
 function renderDet(){const d=$('#det');
   if(packTab==='map'){const L=mapLevel();if(mapPick){d.innerHTML=`<h3>${fireName(mapPick.L,mapPick.f)}</h3><div class="ty">${mapPick.L.area.def.name} · ${mapPick.L.name}</div><div class="btns"><button class="btn pri" onclick="mapTravel()">Travel here</button><button class="btn" onclick="mapPick=null;renderPack()">Cancel</button></div>`;return}
     d.innerHTML=`<h3>${L.name}</h3><div class="ty">${L.area.def.name}</div><div class="fl">${atFire?'Tap a lit fire to travel there.':'Sit at a lit fire and choose Travel to journey between fires.'}</div>`;return}
@@ -4635,7 +4869,7 @@ function renderDet(){const d=$('#det');
     d.querySelectorAll('.cpick b').forEach(b=>b.onclick=()=>{sel.cmp=b.dataset.c;renderPack()})}
   else d.innerHTML=`<h3 style="color:${R.c}">${esc(iname(id))}</h3><div class="ty" style="color:${R.c}aa">${typeLine(it)}${cur?` · replaces ${esc(iname(P.eq[tslot]))}`:''}</div><div class="sl">${it.slot?compareLines(it,cur)+specialLines(it).map(l=>`<div>${l}</div>`).join(''):`<div>${it.junk?'No use. A merchant will buy it.':it.fx}</div>`}${it.set?`<div>${setHTML(it).replace(/<span/g,'<div').replace(/<\/span>/g,'</div>')}</div>`:''}<div style="color:#c9a24b">Sells for ${sellPrice(id)} gold</div></div><div class="fl">${esc(it.d||'')}</div><div class="btns">${btns}</div>`;
   if(sel.src==='bag'){const bb=P.bag[sel.i],bt=d.querySelector('.btns');if(bt&&bb){bt.insertAdjacentHTML('beforeend',`<button class="btn lock" id="dL">${bb.lk?'Unlock':'Lock'}</button>`);if(bb.lk){const x=$('#dB');if(x)x.remove()}
-    $('#dL').onclick=()=>{bb.lk=bb.lk?0:1;pflash(bb.lk?'Locked. It can\'t be sold, stored or thrown away until you unlock it.':'Unlocked.');renderPack()}}}
+    $('#dL').onclick=()=>{lockToggle(bb);pflash(bb.lk?'Locked. It stays in this slot, and it can\'t be sold, stored or discarded until you unlock it.':'Unlocked.');renderPack()}}}
   const A=$('#dA'),Bb=$('#dB');
   if(sel.src==='eq')A.onclick=()=>{if(P.bag.length>=BAG_MAX){pflash('Your bag is full.');return}P.bag.push({id,n:1});P.eq[sel.s]=null;recalc();buildKnight();renderPack()};
   else if(it.slot)A.onclick=()=>{
@@ -4720,6 +4954,7 @@ function closeBestiary(){$('#bst').classList.remove('on');hideTip();mode=bstPrev
    One screen, built for fingers: tap anything to see it in full below (with how it compares to what you wear), then act on it.
    Nothing here needs hovering. */
 let TRADE=null,TL=[];
+function lockToggle(b){if(b.lk){b.lk=0;delete b.p}else{const p=bagSlots().indexOf(P.bag.indexOf(b));b.lk=1;b.p=p}}
 /* ---- the anvil: reinforce a weapon, set gems, drill a socket, reforge an item's magic ---- */
 function forgeList(){const L=[];for(const s of Object.keys(P.eq))if(P.eq[s])L.push({id:P.eq[s],eq:s});for(const b of P.bag)if(ITEMS[b.id].slot)L.push({id:b.id});return L}
 const drillCost=id=>30+Math.round(buyPrice(id)*.8),reforgeCost=id=>Math.round(buyPrice(id)*.6*(1+.5*(ITEMS[id].rf||0)));
@@ -4742,8 +4977,9 @@ function forgeAct(g,f,gid){const id=g.id,it=ITEMS[id],spark=()=>{[0,1,2].forEach
   recalc();buildKnight();renderPack()}
 
 function openTrade(tab,p){if(mode!=='world')return;
-  const near=t=>props.find(q=>q.t===t&&Math.hypot(q.x-P.x,q.y-P.y)<8*T);
-  const crow=p&&(p.t==='crow'||p.road)?p:(!DIFF.hc&&near('crow'))||null,stash=!(p&&p.road)&&(tab==='stash'||!!near('f_stash')),forge=tab==='forge'||!!near('f_anvil');
+  /* each camp fixture has its own screen: Mortimer (his wares and gambling), the stash, or the anvil */
+  const near=t=>props.find(q=>q.t===t&&Math.hypot(q.x-P.x,q.y-P.y)<8*T),isCrow=tab==='buy'||tab==='gamble';
+  const crow=isCrow?(p&&(p.t==='crow'||p.road)?p:(!DIFF.hc&&near('crow'))||null):null,stash=tab==='stash',forge=tab==='forge';
   TRADE={crow,stash,forge};$('#pack').classList.add('trade');
   document.querySelectorAll('#pack .tabs b.trt').forEach(b=>b.classList.toggle('av',b.dataset.t==='stash'?stash:b.dataset.t==='forge'?forge:!!crow));
   openPack(tab)}
@@ -4762,7 +4998,7 @@ function renderTrade(){const X=TRADE;if(!X){packTab='bag';renderPack();return}$(
     top=P.stash.map((b,i)=>tSlot(b.id,b.n,i,'stash',null,b.lk)).join('')||'<div class="empty-note">Empty. Whatever you leave here is waiting at every camp.</div>';
     if(P.bag.some(b=>!b.lk))bar='<button class="btn" data-b="storeall">Store everything not locked</button>'}
   $('#trg').innerHTML=top;$('#trbar').innerHTML=bar;
-  let h='';for(let i=0;i<BAG_MAX;i++){const b=P.bag[i];h+=b?tSlot(b.id,b.n,i,'tbag',packTab==='stash'||packTab==='forge'||ITEMS[b.id].tool?null:sellPrice(b.id),b.lk):'<div class="slot empty"></div>'}$('#trb').innerHTML=h;
+  let h='';const SL=bagSlots();for(let k=0;k<BAG_MAX;k++){const i=SL[k],b=P.bag[i];h+=b?tSlot(b.id,b.n,i,'tbag',packTab==='stash'||packTab==='forge'||ITEMS[b.id].tool?null:sellPrice(b.id),b.lk):'<div class="slot empty"></div>'}$('#trb').innerHTML=h;
   document.querySelectorAll('#pk-trade .slot[data-src]').forEach(el=>el.onclick=()=>{sel={src:el.dataset.src,i:+el.dataset.i};renderPack();
     const dt=$('#det');if(dt&&!matchMedia('(orientation:landscape) and (max-height:640px)').matches){const r=dt.getBoundingClientRect();if(r.top>innerHeight-120)dt.scrollIntoView({block:'nearest',behavior:'smooth'})}});
   document.querySelectorAll('#trbar .btn').forEach(b=>b.onclick=()=>tradeBar(b.dataset.b))}
@@ -4790,10 +5026,10 @@ function tradeDet(d){const X=TRADE,R=c=>RARITY[c.r];let h='',btn='';
     else if(sel.src==='stash'){h+=it.slot?'':`<div class="fl">${esc(it.d||'')}</div>`;btn=`<button class="btn pri" id="tA">Take</button><button class="btn lock" id="tL">${e.lk?'Unlock':'Lock'}</button>`}
     else{const sp=sellPrice(e.id);h+=it.slot?'':`<div class="fl">${esc(it.d||'')}</div>`;
       btn=(packTab==='stash'?`<button class="btn pri" id="tA"${e.lk?' disabled':''}>Store</button>`:X.crow&&!it.tool?`<button class="btn pri" id="tA"${e.lk?' disabled':''}>Sell · ${sp}${e.n>1?' each':''}</button>`:'')+`<button class="btn lock" id="tL">${e.lk?'Unlock':'Lock'}</button>`;
-      if(e.lk)h+=`<div class="pr" style="color:#8a8670">Locked: it can't be sold, stored or thrown away.</div>`}}
+      if(e.lk)h+=`<div class="pr" style="color:#8a8670">Locked: it stays in this slot, and it can't be sold, stored or discarded.</div>`}}
   d.innerHTML=h+`<div class="btns">${btn}</div>`;
   d.querySelectorAll('.cpick b').forEach(b=>b.onclick=()=>{sel.cmp=b.dataset.c;renderPack()});
-  const A=$('#tA'),Lk=$('#tL');if(Lk)Lk.onclick=()=>{const L=sel.src==='stash'?P.stash:P.bag,e=L[sel.i];if(e){e.lk=e.lk?0:1;renderPack()}};
+  const A=$('#tA'),Lk=$('#tL');if(Lk)Lk.onclick=()=>{const L=sel.src==='stash'?P.stash:P.bag,e=L[sel.i];if(e){if(L===P.bag)lockToggle(e);else e.lk=e.lk?0:1;renderPack()}};
   if(A)A.onclick=()=>tradeAct()}
 function tradeAct(){const X=TRADE;
   if(sel.src==='gam'){const g=TL[sel.i];if(P.gold<g.pr){pflash("You can't afford that.");return}if(P.bag.length>=BAG_MAX){pflash('Your bag is full.');return}
@@ -4941,10 +5177,11 @@ async function loadGame(){const o=saveInfo();if(!o)return false;let d;try{d=desG
   bindLevel(d.LV);useLevelMobs(LV);particles=[];floats=[];B=null;TR=null;
   recalc();buildKnight();hudKey='';return true}
 /* also usable mid-battle: saving there keeps your health and items as they are now, and the fight is waiting where you left it */
-async function gameMenu(){if(mode!=='world'&&!(mode==='battle'&&B&&B.turnDone&&!B.busy))return;const c=await dialog('The Old Road',`${MODES[diffKey()].n} · ${AR.def.name}${mode==='battle'?' · in a fight':''}`,['Resume','Bestiary','Save and quit','Quit without saving']);
+async function gameMenu(){if(mode!=='world'&&!(mode==='battle'&&B&&B.turnDone&&!B.busy))return;const c=await dialog('The Old Road',`${MODES[diffKey()].n} · ${AR.def.name}${mode==='battle'?' · in a fight':''}`,['Resume','Bestiary','Record','Save and quit','Quit without saving']);
   if(c===1){openBestiary();return}
-  if(c===2){if(await saveGame()){mode='title';location.reload()}else notice('The save failed. Your browser may be out of storage space.')}
-  else if(c===3){const k=await dialog('Quit without saving?',saveInfo()?'Everything since your last save will be lost.':'This knight will be lost.',['Quit','Keep playing']);if(k===0){mode='title';location.reload()}}}
+  if(c===2){openRecord();return}
+  if(c===3){if(await saveGame()){mode='title';location.reload()}else notice('The save failed. Your browser may be out of storage space.')}
+  else if(c===4){const k=await dialog('Quit without saving?',saveInfo()?'Everything since your last save will be lost.':'This knight will be lost.',['Quit','Keep playing']);if(k===0){mode='title';location.reload()}}}
 
 /* ================= INPUT ================= */
 const keys={};let padV={x:0,y:0};
@@ -4971,14 +5208,19 @@ addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
   pad.addEventListener('pointermove',e=>{if(e.pointerId===pid)upd(e)});
   const end=e=>{if(e.pointerId!==pid)return;pid=null;padV={x:0,y:0};nub.style.transform=''};
   pad.addEventListener('pointerup',end);pad.addEventListener('pointercancel',end)})();
-const press=(el,fn)=>{el.addEventListener('pointerdown',e=>{e.preventDefault();el.classList.add('down');fn()});['pointerup','pointerleave','pointercancel'].forEach(t=>el.addEventListener(t,()=>el.classList.remove('down')))};
+/* buttons act when you lift your finger, and only if it is still on the button (slide off to cancel) */
+const press=(el,fn)=>{let pid=null;el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid)}catch(_){}el.classList.add('down')});
+  el.addEventListener('pointerup',e=>{if(e.pointerId!==pid)return;pid=null;el.classList.remove('down');const r=el.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)fn()});
+  el.addEventListener('pointercancel',()=>{pid=null;el.classList.remove('down')})};
 press($('#btnA'),()=>{if(mode==='note')noteTap();else if(mode==='world')doSlash()});
 press($('#btnU'),()=>{if(mode==='note')noteTap();else if(mode==='world')doUse()});
 /* text advances with a tap or click anywhere; the tap is swallowed so it never presses anything underneath */
 let eatClick=0;
-document.addEventListener('pointerdown',e=>{
-  if(noteCur){e.preventDefault();e.stopPropagation();eatClick=performance.now();noteTap();return}
-  if(mode==='battle'&&B&&!B.qte&&(typing||msgSkip)&&!e.target.closest('#logb,#clog,#stw,#acts [data-a=stats]')){e.preventDefault();e.stopPropagation();eatClick=performance.now();msgTap()}},true);
+let tapArm=null;
+document.addEventListener('pointerdown',e=>{tapArm=null;
+  if(noteCur){e.preventDefault();e.stopPropagation();tapArm='note';return}
+  if(mode==='battle'&&B&&!B.qte&&(typing||msgSkip)&&!e.target.closest('#logb,#clog,#stw,#acts [data-a=stats]')){e.preventDefault();e.stopPropagation();tapArm='msg'}},true);
+document.addEventListener('pointerup',e=>{const a=tapArm;tapArm=null;if(!a)return;e.preventDefault();e.stopPropagation();eatClick=performance.now();if(a==='note'){if(noteCur)noteTap()}else msgTap()},true);
 document.addEventListener('click',e=>{if(performance.now()-eatClick<500){e.preventDefault();e.stopPropagation()}},true);
 /* the overworld Log and Stats windows don't pause anything: you keep moving and acting while they're up */
 const logOn=()=>$('#clog').classList.contains('on'),statsOn=()=>$('#stw').classList.contains('on');
