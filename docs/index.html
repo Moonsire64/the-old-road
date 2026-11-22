@@ -370,7 +370,7 @@ let SIM_OUTER=false;
       info.textContent=d[1]?`${w}×${h}${s!==1?' · shown at '+Math.round(s*100)+'%':''}`:'';f.focus()}
     addEventListener('resize',apply);apply()})})();
 </script>
-<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.25.0</div>
+<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.29.0</div>
   <div id="view">
     <canvas id="cv"></canvas>
     <div id="hud">
@@ -803,8 +803,8 @@ CanvasRenderingContext2D.prototype.drawImage=function(src,...a){
 /* ================= AREAS, ZONES, INTERIORS ================= */
 const T=16,ZS=104;let MW=ZS,MH=ZS;
 let RUN=(Math.random()*1e6)|0;
-const G=0,ROAD=1,OAK=2,PINE=3,DEAD=4,BOG=5,MUD=6,ROCKT=7,SHR=8,FIRE=9,STN=10,BRIDGE=11,ENTT=12,CHEST=13,PROPT=14,WATER=15,WALL=16,BARRIER=17,EXIT=18,GATE=19,DOOR=20,FLOOR=21,IWALL=22,BLDG=23,IDOOR=24,BRAMBLE=25,CRACK=26,DEEP=27,DEADFALL=28,BOARDS=29,MIRE=30,SPOIL=31,IRONG=32;
-const BLOCK=new Uint8Array(48);[OAK,PINE,DEAD,BOG,ROCKT,FIRE,STN,ENTT,CHEST,PROPT,WATER,WALL,BARRIER,IWALL,BLDG,BRAMBLE,CRACK,DEEP,DEADFALL,BOARDS,MIRE,SPOIL,IRONG].forEach(t=>BLOCK[t]=1);
+const G=0,ROAD=1,OAK=2,PINE=3,DEAD=4,BOG=5,MUD=6,ROCKT=7,SHR=8,FIRE=9,STN=10,BRIDGE=11,ENTT=12,CHEST=13,PROPT=14,WATER=15,WALL=16,BARRIER=17,EXIT=18,GATE=19,DOOR=20,FLOOR=21,IWALL=22,BLDG=23,IDOOR=24,BRAMBLE=25,CRACK=26,DEEP=27,DEADFALL=28,BOARDS=29,MIRE=30,SPOIL=31,IRONG=32,CASTLE=33,FLAG=34;
+const BLOCK=new Uint8Array(48);[OAK,PINE,DEAD,BOG,ROCKT,FIRE,STN,ENTT,CHEST,PROPT,WATER,WALL,BARRIER,IWALL,BLDG,BRAMBLE,CRACK,DEEP,DEADFALL,BOARDS,MIRE,SPOIL,IRONG,CASTLE].forEach(t=>BLOCK[t]=1);
 /* tool gates: which tile each tool clears, and which tool each gate kind needs (0.18: eight tools, one per map before each boss) */
 const GATE_T={bramble:BRAMBLE,crack:CRACK,deep:DEEP,deadfall:DEADFALL,boards:BOARDS,mire:MIRE,spoil:SPOIL,iron:IRONG};
 const GATE_TOOL={bramble:'brand',crack:'powder',deep:'hook',deadfall:'axe',boards:'crowbar',mire:'pole',spoil:'shovel',iron:'keys'};
@@ -894,23 +894,36 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
   const clear=(cx,cy,rad,force)=>{for(let y=Math.floor(cy-rad);y<=cy+rad;y++)for(let x=Math.floor(cx-rad);x<=cx+rad;x++){if(x<2||y<2||x>=MW-2||y>=MH-2||reserved(x,y))continue;
       if(Math.hypot(x-cx,y-cy)<=rad+(hash(x,y)-.5)){const t=map[id(x,y)];if(t!==ROAD&&t!==BRIDGE&&(force||t!==BOG&&t!==WATER))map[id(x,y)]=G}}};
   const pts=[],far=(x,y,d)=>pts.every(p=>Math.hypot(p.x-x,p.y-y)>=d);
-  const randPt=(m,d,tries=300)=>{for(let k=0;k<tries;k++){const x=m+((r()*(ZS-2*m))|0),y=m+((r()*(ZS-2*m))|0);if(far(x,y,d))return{x,y}}return{x:m+((r()*(ZS-2*m))|0),y:m+((r()*(ZS-2*m))|0)}};
+  const randPt=(m,d,tries=300)=>{for(let k=0;k<tries;k++){const x=m+((r()*(ZS-2*m))|0),y=m+((r()*(ZS-2*m))|0);if(far(x,y,d)&&!(L.fort&&x>=L.fort.x0-5&&x<=L.fort.x1+5&&y>=L.fort.y0-5&&y<=L.fort.y1+5))return{x,y}}return{x:m+((r()*(ZS-2*m))|0),y:m+((r()*(ZS-2*m))|0)}};
   // gates
   LINKS.forEach((lk,li)=>{if(lk.a!==zi&&lk.b!==zi)return;const e=lk.a===zi?lk.ea:lk.eb,to=lk.a===zi?lk.b:lk.a,pos=gatePos(ar,li),inner=edgeInner(e,pos);
     L.gates.push({e,pos,to,li,inner,tiles:edgeTiles(e,pos)});pts.push(Object.assign({k:'gate'},inner))});
+  /* Lord Harrow's stronghold fills most of the last plains map: a moat, a curtain wall with towers and a gatehouse, a courtyard, and his keep at the back.
+     The gatehouse faces the way you come in; the keys from the middle plains map open it. Laid out in local terms: u runs from the gate (negative) to the keep, v across */
+  if(ty==='plains'&&zi===LASTZ&&L.gates.length){const e=L.gates[0].e,b={N:[0,1],S:[0,-1],W:[1,0],E:[-1,0]}[e],l=[Math.abs(b[1]),Math.abs(b[0])],HU=30,HV=33,j=Math.round((r()-.5)*10);
+    const Cx=Math.round(ZS/2+b[0]*(ZS/2-4-HU)+l[0]*j),Cy=Math.round(ZS/2+b[1]*(ZS/2-4-HU)+l[1]*j);
+    const P2=(u,v)=>({x:Cx+b[0]*u+l[0]*v,y:Cy+b[1]*u+l[1]*v});
+    L.fort={b,l,HU,HV,Cx,Cy,x0:Math.min(P2(-HU,-HV).x,P2(HU,HV).x),x1:Math.max(P2(-HU,-HV).x,P2(HU,HV).x),y0:Math.min(P2(-HU,-HV).y,P2(HU,HV).y),y1:Math.max(P2(-HU,-HV).y,P2(HU,HV).y),gate:P2(-HU+3,0),bridge:P2(-HU-1,0)};
+    for(let y=L.fort.y0-1;y<=L.fort.y1+1;y++)for(let x=L.fort.x0-1;x<=L.fort.x1+1;x++)if(x>=0&&y>=0&&x<MW&&y<MH)reservedT[id(x,y)]=1;
+    const bo=P2(-HU-2,0);reservedT[id(bo.x,bo.y)]=0;pts.push({x:bo.x,y:bo.y,k:'fgate'})}
+  const inFort=(x,y,m=0)=>!!L.fort&&x>=L.fort.x0-m&&x<=L.fort.x1+m&&y>=L.fort.y0-m&&y<=L.fort.y1+m;
   // fire / start
   if(zi===0){const s=ar.i===0?{x:14+((r()*12)|0),y:ZS-16-((r()*12)|0)}:randPt(16,26);L.start={x:s.x,y:s.y};pts.push({x:s.x,y:s.y+1,k:'start'});
     if(ar.i>0){const a=r()*6.283,bx=clamp(Math.round(s.x+Math.cos(a)*6),6,ZS-7),by=clamp(Math.round(s.y+Math.sin(a)*6),6,ZS-7);L.back={x:bx,y:by};pts.push({x:bx,y:by,k:'back'})}}
   /* every other map has a camp just inside the way in: a lit fire, an anvil, a stash, and (unless you are playing Hardcore) Mortimer */
   else{const g=L.gates.find(q=>q.to===zi-1)||L.gates[0],dv={N:[0,1],S:[0,-1],E:[-1,0],W:[1,0]}[g.e],s={x:clamp(g.inner.x+dv[0]*6,8,ZS-9),y:clamp(g.inner.y+dv[1]*6,8,ZS-9)};L.start=s;pts.push({x:s.x,y:s.y+1,k:'start'})}
   // arena + pocket
-  if(zi===LASTZ){const a=randPt(20,34);L.arena={x:a.x,y:a.y,r:6};pts.push({x:a.x,y:a.y,k:'arena'});
+  if(zi===LASTZ&&L.fort){const F=L.fort,P2=(u,v)=>({x:F.Cx+F.b[0]*u+F.l[0]*v,y:F.Cy+F.b[1]*u+F.l[1]*v}),pc=P2(F.HU-11,0),a=P2(F.HU-23,0),d=F.b;
+    L.arena={x:a.x,y:a.y,r:5};pts.push({x:a.x,y:a.y,k:'arena'});
+    L.pocket={x0:pc.x-2,y0:pc.y-2,x1:pc.x+2,y1:pc.y+2,gap:{x:pc.x-d[0]*3,y:pc.y-d[1]*3},out:{x:pc.x-d[0]*4,y:pc.y-d[1]*4},fire:{x:pc.x,y:pc.y},exit:def.next!=null?{x:pc.x+d[0]*2+(d[0]?0:1),y:pc.y+d[1]*2+(d[1]?0:1)}:null};
+    pts.push({x:L.pocket.out.x,y:L.pocket.out.y,k:'out'})}
+  else if(zi===LASTZ){const a=randPt(20,34);L.arena={x:a.x,y:a.y,r:6};pts.push({x:a.x,y:a.y,k:'arena'});
     const dirs=[[0,-1],[1,0],[0,1],[-1,0]].sort(()=>r()-.5);let d=dirs[0];for(const dd of dirs){const cx=a.x+dd[0]*12,cy=a.y+dd[1]*12;if(cx>10&&cy>10&&cx<ZS-10&&cy<ZS-10){d=dd;break}}
     const pcx=a.x+d[0]*12,pcy=a.y+d[1]*12;L.pocket={x0:pcx-2,y0:pcy-2,x1:pcx+2,y1:pcy+2,gap:{x:pcx-d[0]*3,y:pcy-d[1]*3},out:{x:pcx-d[0]*4,y:pcy-d[1]*4},fire:{x:pcx,y:pcy},exit:def.next!=null?{x:pcx+d[0]*2+(d[0]?0:1),y:pcy+d[1]*2+(d[1]?0:1)}:null};
     for(let y=L.pocket.y0-2;y<=L.pocket.y1+2;y++)for(let x=L.pocket.x0-2;x<=L.pocket.x1+2;x++)reservedT[id(x,y)]=1;reservedT[id(L.pocket.out.x,L.pocket.out.y)]=0;pts.push({x:L.pocket.out.x,y:L.pocket.out.y,k:'out'})}
   /* campfires are only for travel now, so fewer of them, spread as far from each other (and from the way in) as the map allows */
   const nf=(zi===0?3:zi===LASTZ?2:3)-(DIFF.h>1?1:0),fireSpots=[],anchors=pts.filter(p=>p.k==='gate'||p.k==='start'||p.k==='arena');
-  for(let k=0;k<nf;k++){let best=null,bd=-1;for(let t=0;t<90;t++){const x=12+((r()*(ZS-24))|0),y=12+((r()*(ZS-24))|0);if(!far(x,y,10))continue;let m=1e9;for(const a of anchors.concat(fireSpots))m=Math.min(m,Math.hypot(a.x-x,a.y-y));if(m>bd){bd=m;best={x,y}}}
+  for(let k=0;k<nf;k++){let best=null,bd=-1;for(let t=0;t<90;t++){const x=12+((r()*(ZS-24))|0),y=12+((r()*(ZS-24))|0);if(!far(x,y,10)||inFort(x,y,4))continue;let m=1e9;for(const a of anchors.concat(fireSpots))m=Math.min(m,Math.hypot(a.x-x,a.y-y));if(m>bd){bd=m;best={x,y}}}
     const p=best||randPt(10,17);fireSpots.push(p);pts.push({x:p.x,y:p.y+1,k:'fire'})}
   if(def.puzzle&&def.puzzle.z===zi){const p=randPt(12,20);L.puzzle={t:def.puzzle.t,x:p.x,y:p.y};pts.push({x:p.x,y:p.y,k:'puzzle'})}
   // buildings
@@ -931,17 +944,35 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
   for(const[i,j]of edges)carve(pts[i],pts[j]);
   for(let k=0;k<10;k++){const p=pts[(r()*pts.length)|0],q={x:clamp(p.x+((r()-.5)*40|0),5,ZS-6),y:clamp(p.y+((r()-.5)*40|0),5,ZS-6)};carve(p,q);clear(q.x,q.y,2.5)}
   if(ty==='cave')for(let k=0;k<12;k++){const cx=6+((r()*(ZS-12))|0),cy=6+((r()*(ZS-12))|0);if(reserved(cx,cy))continue;for(let y=cy-2;y<=cy+2;y++)for(let x=cx-3;x<=cx+3;x++)if(map[id(x,y)]===G&&Math.hypot((x-cx)/3,(y-cy)/2)<1&&!reserved(x,y))map[id(x,y)]=WATER}
+  if(L.fort){const F=L.fort;for(let y=F.y0;y<=F.y1;y++)for(let x=F.x0;x<=F.x1;x++){const u=(x-F.Cx)*F.b[0]+(y-F.Cy)*F.b[1],v=(x-F.Cx)*F.l[0]+(y-F.Cy)*F.l[1],au=Math.abs(u),av=Math.abs(v),q=id(x,y);
+      const e=Math.min(F.HU-au,F.HV-av);let t;
+      if(e<=2)t=(u<0&&av<=1&&F.HU-au===e)?BRIDGE:WATER;                                         /* the moat, and the drawbridge over it */
+      else if(e<=5)t=(u<0&&v===0&&F.HU-au<=5&&F.HU-au===e)?(F.HU-au===3?BARRIER:FLAG):CASTLE;      /* curtain wall; the gate passage */
+      else{t=G;if(e<=7||av<=1)t=FLAG;
+        if(F.HU-au<=11&&F.HV-av<=11&&e<=11)t=CASTLE;                                               /* corner towers */
+        if(F.HV-av<=9&&Math.abs(u)<=3&&e<=9)t=CASTLE;                                              /* towers half way along the side walls */
+        if(u<0&&F.HU-au<=9&&av>=2&&av<=5)t=CASTLE;                                                 /* the gatehouse either side of the passage */
+        if(u>=F.HU-17&&av<=11)t=CASTLE}                                                            /* the keep */
+      map[q]=t;if(t===CASTLE||t===WATER||t===BRIDGE)reservedT[q]=1;else reservedT[q]=0}
+    /* cannons along the battlements, pointing out over the moat */
+    F.cannons=[];for(let v=-F.HV+8;v<=F.HV-8;v+=7){if(Math.abs(v)<6)continue;const p={x:F.Cx+F.b[0]*(-F.HU+3)+F.l[0]*v,y:F.Cy+F.b[1]*(-F.HU+3)+F.l[1]*v};F.cannons.push({x:p.x,y:p.y,dx:-F.b[0],dy:-F.b[1]})}
+    for(const sg of[-1,1])for(let u=-F.HU+10;u<=F.HU-10;u+=8){const p={x:F.Cx+F.b[0]*u+F.l[0]*sg*(F.HV-3),y:F.Cy+F.b[1]*u+F.l[1]*sg*(F.HV-3)};F.cannons.push({x:p.x,y:p.y,dx:F.l[0]*sg,dy:F.l[1]*sg})}
+    const bo=F.bridge;for(let k=0;k<=3;k++)for(const w of[-1,0,1]){const x=bo.x-F.b[0]*k+F.l[0]*w,y=bo.y-F.b[1]*k+F.l[1]*w,q=id(x,y);if(BLOCK[map[q]]||map[q]===WATER)map[q]=ROAD}}
   // fixed features
   for(const g of L.gates)for(const[x,y]of g.tiles){map[id(x,y)]=GATE;const ix=x===0?1:x===ZS-1?ZS-2:x,iy=y===0?1:y===ZS-1?ZS-2:y;map[id(ix,iy)]=ROAD;const jx=x===0?2:x===ZS-1?ZS-3:x,jy=y===0?2:y===ZS-1?ZS-3:y;map[id(jx,jy)]=ROAD}
   if(L.start){fires.push({x:L.start.x,y:L.start.y,lit:true,away:false,travel:true,start:true})}
   for(const p of fireSpots)fires.push({x:p.x,y:p.y,lit:false,away:true});
   for(const f of fires)map[id(f.x,f.y)]=FIRE;
-  if(L.arena){const ar2=L.arena;for(let k=0;k<11;k++){const an=k/11*Math.PI*2+.3,x=Math.round(ar2.x+Math.cos(an)*(ar2.r-.5)),y=Math.round(ar2.y+Math.sin(an)*(ar2.r-1));if(map[id(x,y)]===G)map[id(x,y)]=STN}
+  if(L.arena){const ar2=L.arena;
     L.bossTile={x:ar2.x,y:ar2.y-2};map[id(ar2.x,ar2.y-2)]=def.boss==='elder'?ENTT:G;
     const pk=L.pocket;for(let y=pk.y0-1;y<=pk.y1+1;y++)for(let x=pk.x0-1;x<=pk.x1+1;x++){const edge=x===pk.x0-1||x===pk.x1+1||y===pk.y0-1||y===pk.y1+1;map[id(x,y)]=edge?solid(x,y):G}
     map[id(pk.gap.x,pk.gap.y)]=BARRIER;map[id(pk.out.x,pk.out.y)]=ROAD;
     if(pk.exit)map[id(pk.exit.x,pk.exit.y)]=EXIT}
   if(L.back)map[id(L.back.x,L.back.y)]=EXIT;
+  if(L.fort&&L.pocket){const F=L.fort,pk=L.pocket;for(let y=F.y0;y<=F.y1;y++)for(let x=F.x0;x<=F.x1;x++){const u=(x-F.Cx)*F.b[0]+(y-F.Cy)*F.b[1],v=(x-F.Cx)*F.l[0]+(y-F.Cy)*F.l[1];
+      if(!(u>=F.HU-17&&u<=F.HU-6&&Math.abs(v)<=11))continue;if(x>=pk.x0&&x<=pk.x1&&y>=pk.y0&&y<=pk.y1)continue;const q=id(x,y);if(map[q]===BARRIER||map[q]===FIRE||map[q]===EXIT)continue;
+      if(x===pk.out.x&&y===pk.out.y)continue;if(v===0&&u<=F.HU-15){map[q]=FLAG;continue}map[q]=CASTLE}
+    for(let y=pk.y0;y<=pk.y1;y++)for(let x=pk.x0;x<=pk.x1;x++)if(map[id(x,y)]===G)map[id(x,y)]=FLAG}
   for(const b of L.blds){const B=BTYPES[b.bt];for(let y=b.y;y<b.y+B.fh;y++)for(let x=b.x;x<b.x+B.fw;x++)map[id(x,y)]=BLDG;map[id(b.door.x,b.door.y)]=DOOR;if(map[id(b.door.x,b.door.y+1)]!==BRIDGE)map[id(b.door.x,b.door.y+1)]=ROAD}
   L.fpt=L.gates[0].inner;map[id(L.fpt.x,L.fpt.y)]=ROAD;
   // guarantee every important point is reachable
@@ -963,6 +994,7 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
       map[id(c.x,c.y)]=CHEST;const s2=flood(true);map[id(c.x,c.y)]=G;if(!fires.every(f=>inPocket(f.x,f.y)||touchesReach(s2,f.x,f.y))||!L.gates.every(g=>s2[id(g.inner.x,g.inner.y)]))continue;addChest(c.x,c.y,null)}}
   /* open a small glade around each chest so canopies never bury it */
   for(const c of chests)for(let dy=-1;dy<=2;dy++)for(let dx=-1;dx<=1;dx++){const x=c.x+dx,y=c.y+dy,q=id(x,y),t=map[q];if((dx||dy)&&(t===OAK||t===PINE||t===DEAD)&&!inPocket(x,y)&&!PROPAT[q])map[q]=G}
+  if(zi===LASTZ){bossRing(L,r,ty);if(L.ringSet)for(const q of L.ringSet)reservedT[q]=1}
   REACH=L.reach=flood(true);
   makeSecrets(L,r,ty);
   /* the tool for this map lies in the chest furthest from the way in, and right beside it is somewhere only that tool opens */
@@ -972,6 +1004,9 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
   makeDeadEnds(L,r);
   {const oc=chests.filter(c=>!c.loot&&!c.veil&&!c.secret&&!c.relic);if(oc.length>3)oc[(r()*oc.length)|0].locked=1}
   placeProps(r,ty);
+  ringRestore(L);
+  /* while the last passes check that everything can be walked to, the boss gate counts as open (it opens with the area's tool) */
+  const bgCells=L.bossGate?[[L.bossGate.x,L.bossGate.y],[L.bossGate.x+L.ring.od[0],L.bossGate.y+L.ring.od[1]]].filter(([x,y])=>TILE_TOOL[map[id(x,y)]]):[],bgOld=bgCells.map(([x,y])=>map[id(x,y)]);bgCells.forEach(([x,y])=>map[id(x,y)]=G);
   /* last pass: anything placed after the main layout (puzzles, props, chests, spawns, roadside events) must be walkable to.
      If it isn't, carve the shortest path to it. Secret chests stay behind their tool gates. */
   {const want=[];for(const p of props)if(!p.tree)want.push([p.tx,p.ty,p.solid]);for(const c of chests)if(!c.secret&&!c.sealed)want.push([c.x,c.y,1]);
@@ -1001,12 +1036,45 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
      const o=[[0,1],[1,0],[-1,0],[0,-1]].map(([a,b])=>[x+a,y+b]).find(([a,b])=>!PROPAT[id(a,b)]&&!CHESTS[id(a,b)]&&a>0&&b>0&&a<MW-1&&b<MH-1);if(!o)continue;
      if(BLOCK[map[id(o[0],o[1])]])map[id(o[0],o[1])]=ty==='cave'?ROAD:G;bfsConnect(o[0],o[1],s,(a,b)=>reserved(a,b)||!!PROPAT[id(a,b)]||!!CHESTS[id(a,b)],setRoad);s=flood(true);ch++}
    if(ch)REACH=L.reach=s}
+  /* final guarantee: with the gate open, the boss, its spot and the way to the pocket can be walked to. If anything still blocks it, dig the shortest way through (never through the ring itself) */
+  if(bgCells.length){const a=L.arena,ring=L.ringSet;for(const[tx,ty2]of[[a.x,a.y],[L.bossTile.x,L.bossTile.y+1],[L.pocket.out.x,L.pocket.out.y]]){const s=flood(true);if(s[id(tx,ty2)])continue;
+      const prev=new Int32Array(MW*MH).fill(-1),st=id(tx,ty2),q=[st];prev[st]=st;let hit=-1;
+      for(let qi=0;qi<q.length&&hit<0;qi++){const c=q[qi],cx=c%MW,cy=(c/MW)|0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=cx+dx,ny=cy+dy;if(nx<2||ny<2||nx>=MW-2||ny>=MH-2)continue;const ni=id(nx,ny);if(prev[ni]>=0||(ring.has(ni)&&!bgCells.some(([gx,gy])=>id(gx,gy)===ni))||inPocket(nx,ny))continue;prev[ni]=c;if(s[ni]){hit=ni;break}q.push(ni)}}
+      for(let c=hit;c>=0&&c!==st;c=prev[c]){if(PROPAT[c]){const p=PROPAT[c];props.splice(props.indexOf(p),1);delete PROPAT[c]}if(CHESTS[c]){const ch=CHESTS[c];chests.splice(chests.indexOf(ch),1);delete CHESTS[c]}
+        if(BLOCK[map[c]]&&map[c]!==FIRE&&map[c]!==BARRIER)map[c]=ty==='cave'?ROAD:G}if(BLOCK[map[st]]&&map[st]!==ENTT)map[st]=G}}
+  if(bgCells.length){bgCells.forEach(([x,y],i)=>map[id(x,y)]=bgOld[i]);REACH=L.reach=flood(true)}
   genSpawns();
+  if(L.fort){const g=L.fort.gate;map[id(g.x,g.y)]=IRONG;L.fortGate={x:g.x,y:g.y};REACH=L.reach=flood(true)}
   return L}
 
 /* ---------- interiors ---------- */
 const SOLID_OK=t=>t===OAK||t===PINE||t===DEAD||t===WALL||t===ROCKT||t===WATER||t===BOG;
 /* tool-gated secret rooms: a short corridor sealed by brambles, cracked rock or deep water, a chest beyond */
+/* the boss's ground is walled in on every side, in the area's own way (thicket, rock, deep water and trees, hedge), and the only way in
+   is through a gate that needs the tool from the area's middle map. The gate faces the way you come from */
+function bossRing(L,r,ty){const a=L.arena,pk=L.pocket;if(!a||!pk||L.fort)return;const tool=(TOOL_MAP[L.area.i]||[])[1];if(!tool)return;
+  const kind=TOOL_GATE[tool],GT=GATE_T[kind],two=kind==='deep'||kind==='mire',R1=a.r+1,R2=a.r+3,ringSet=L.ringSet=new Set();
+  const pd=[Math.sign(pk.fire.x-a.x),Math.sign(pk.fire.y-a.y)],s0=L.start||L.fpt;
+  const dirs=[[0,-1],[1,0],[0,1],[-1,0]].filter(d=>!(d[0]===pd[0]&&d[1]===pd[1])&&a.x+d[0]*(R2+3)>3&&a.y+d[1]*(R2+3)>3&&a.x+d[0]*(R2+3)<MW-4&&a.y+d[1]*(R2+3)<MH-4);
+  dirs.sort((p,q)=>((q[0]*(s0.x-a.x)+q[1]*(s0.y-a.y))-(p[0]*(s0.x-a.x)+p[1]*(s0.y-a.y))));const od=dirs[0]||[0,1];L.ring={od,pd};
+  const lineP=(x,y)=>{for(let t=0;t<=a.r+6;t++)if(x===a.x+pd[0]*t&&y===a.y+pd[1]*t)return true;return false};
+  const pkEdge=(x,y)=>x>=pk.x0-1&&x<=pk.x1+1&&y>=pk.y0-1&&y<=pk.y1+1;
+  const wallT=(x,y)=>ty==='cave'?WALL:ty==='swamp'?(Math.hypot(x-a.x,y-a.y)<R1+1.2?WATER:(((x*31+y*17)%5)<2?DEAD:PINE)):ty==='plains'?OAK:(((x*7+y*13)%3)?OAK:PINE);
+  for(let y=a.y-R2-1;y<=a.y+R2+1;y++)for(let x=a.x-R2-1;x<=a.x+R2+1;x++){if(x<1||y<1||x>=MW-1||y>=MH-1)continue;const d=Math.hypot(x-a.x,y-a.y);
+    if(d<R1-.5||d>=R2+.5||pkEdge(x,y)||lineP(x,y))continue;const q=id(x,y);if(map[q]===FIRE||map[q]===EXIT||map[q]===DOOR)continue;
+    if(CHESTS[q]){const c=CHESTS[q];chests.splice(chests.indexOf(c),1);delete CHESTS[q]}map[q]=wallT(x,y);ringSet.add(q)}
+  /* the way in: open ground through the ring, the gate in the middle of it, and a cleared path out to where you can already walk */
+  for(let t=R1-1;t<=R2+1;t++){const x=a.x+od[0]*t,y=a.y+od[1]*t,q=id(x,y);ringSet.delete(q);map[q]=(t===R1+1||(two&&t===R1+2))?GT:G;if(map[q]===GT)ringSet.add(q)}
+  const s=flood(true),clear=L.ringClear=[];for(let t=R1-1;t<=R2+1;t++){const q=id(a.x+od[0]*t,a.y+od[1]*t);if(!TILE_TOOL[map[q]])clear.push(q)}
+  for(let t=R2+2;t<R2+30;t++){const x=a.x+od[0]*t,y=a.y+od[1]*t;if(x<2||y<2||x>=MW-2||y>=MH-2)break;const q=id(x,y);clear.push(q);if(s[q])break;if(BLOCK[map[q]]&&map[q]!==CHEST&&map[q]!==FIRE)map[q]=G}
+  /* the ground inside is open, apart from the boss's own spot */
+  for(let y=a.y-R1;y<=a.y+R1;y++)for(let x=a.x-R1;x<=a.x+R1;x++){if(Math.hypot(x-a.x,y-a.y)>=R1-.5)continue;const q=id(x,y),t=map[q];if(L.bossTile&&x===L.bossTile.x&&y===L.bossTile.y)continue;if(BLOCK[t]&&t!==CHEST&&t!==FIRE&&t!==BARRIER)map[q]=G}
+  L.bossGate={x:a.x+od[0]*(R1+1),y:a.y+od[1]*(R1+1),tool};L.ringSnap=[...ringSet].map(q=>[q,map[q]])}
+/* puzzles and props laid out after the ring may have dug into it: put it back */
+function ringRestore(L){if(!L.ringSnap)return;
+  /* and the way up to the gate stays clear of props */
+  for(const q of L.ringClear||[]){const p=PROPAT[q];if(p){props.splice(props.indexOf(p),1);delete PROPAT[q];if(map[q]===PROPT)map[q]=G}
+    if(CHESTS[q]){const c=CHESTS[q];chests.splice(chests.indexOf(c),1);delete CHESTS[q];if(map[q]===CHEST)map[q]=G}if(L.caches)L.caches=L.caches.filter(c=>id(c.x,c.y)!==q)}for(const[q,t]of L.ringSnap){if(map[q]===t)continue;const p=PROPAT[q];if(p){props.splice(props.indexOf(p),1);delete PROPAT[q]}if(CHESTS[q]){const c=CHESTS[q];chests.splice(chests.indexOf(c),1);delete CHESTS[q]}map[q]=t}}
 function makeSecrets(L,r,ty){const D4=[[1,0],[-1,0],[0,1],[0,-1]];
   /* every map: one gate for each tool of its own region, and two more for tools from anywhere (some you will only be able to open on a later visit) */
   const own=TOOL_MAP[L.area.i]||[],all=TOOL_MAP.flat(),want=own.concat([all[(r()*all.length)|0],all[(r()*all.length)|0]]).map(k=>TOOL_GATE[k]);
@@ -1021,7 +1089,7 @@ function makeSecret(L,r,kind,near){const D4=[[1,0],[-1,0],[0,1],[0,-1]],two=kind
     if(cx<5||cy<5||cx>MW-6||cy>MH-6)continue;
     const cells=[];for(let i=1;i<=len;i++)cells.push([ax+dx*i,ay+dy*i]);
     for(let y=cy-2;y<=cy+2;y++)for(let x=cx-2;x<=cx+2;x++)if(Math.hypot(x-cx,y-cy)<=2.3&&!cells.some(c=>c[0]===x&&c[1]===y))cells.push([x,y]);
-    if(!cells.every(([x,y])=>SOLID_OK(map[id(x,y)])&&!REACH[id(x,y)]&&!PROPAT[id(x,y)]))continue;
+    if(!cells.every(([x,y])=>SOLID_OK(map[id(x,y)])&&!REACH[id(x,y)]&&!PROPAT[id(x,y)]&&!(L.ringSet&&L.ringSet.has(id(x,y)))))continue;
     const old=cells.map(([x,y])=>map[id(x,y)]),GT=GATE_T[kind];
     cells.forEach(([x,y],i)=>{map[id(x,y)]=i===0||(two&&i===1)?GT:G});
     const s=flood(true);if(cells.slice(two?2:1).some(([x,y])=>s[id(x,y)])){cells.forEach(([x,y],i)=>map[id(x,y)]=old[i]);continue}
@@ -1134,13 +1202,37 @@ function placeProps(r,ty){
     LV.sluice={solved:false,x:s.x+3,y:s.y+3};[0,2,4,6].forEach((dx,i)=>addProp('sluice',s.x+dx,s.y,true,{i,open:!!open[i],rot:0}));
     addProp('pzclue',s.x+3,s.y+3,true,{title:'A miller\'s board',text:'EACH WHEEL MOVES ITS OWN GATE\nAND THE GATES EITHER SIDE OF IT.\n\nOPEN ALL FOUR TO LET THE WATER THROUGH.'});break}}many('mushring',ty==='cave'?1:2,any,false,null,8);many('spring',ty==='cave'?1:2,any,false,null,8);many('satchel',2,hid,false,null,8);many('glint',3,any,false,null,8);
   if(ty==='woods'||ty==='plains'){many('scare',ty==='plains'?2:1,any,true,null,10);many('well',ty==='plains'?2:1,any,true,null,12);many('fox',2,hid,false,null,10)}
-  if(ty==='cave'){many('crystal',14,(x,y)=>treeN(x,y)>=2,true,null,4);many('minecart',5,road1,true,null,8);many('orevein',9,(x,y)=>treeN(x,y)>=3,true,null,6);many('timber',8,(x,y)=>treeN(x,y)>=2,true,null,6)}
+  /* Harrow's courtyard: cannons on their carriages along the walls, weapon racks, and his banners up the path to the keep */
+  if(LV.fort){const F=LV.fort,P2=(u,v)=>({x:F.Cx+F.b[0]*u+F.l[0]*v,y:F.Cy+F.b[1]*u+F.l[1]*v}),put=(t,u,v,ex)=>{const p=P2(u,v),q=id(p.x,p.y);if((map[q]===G||map[q]===FLAG)&&!PROPAT[q]&&!CHESTS[q]&&solidOK(p.x,p.y))addProp(t,p.x,p.y,true,ex||{})};
+    for(const v of[-22,-12,12,22])put('fcannon',-F.HU+8,v,{dx:-F.b[0],dy:-F.b[1]});for(const sg of[-1,1])for(const u of[-14,-2,10])put('fcannon',u,sg*(F.HV-8),{dx:F.l[0]*sg,dy:F.l[1]*sg});
+    for(const[u,v]of[[-18,-8],[-18,8],[0,-24],[0,24],[-6,-16],[-6,16]])put('rack',u,v,{v:(r()*2)|0});
+    for(const u of[-20,-12,-4])for(const sg of[-1,1])put('fbanner',u,sg*2,{})}
+  /* the boss's ground, dressed for who lives there: a thicket round the Elder, crystal round the Colossus, a cluster of great mushrooms round the Rot Mother */
+  if(LV.arena&&LV.ring){const a=LV.arena,{od,pd}=LV.ring,bt=LV.bossTile,kind={woods:'thicketbush',cave:'crystalspire',swamp:'bigshroom'}[ty];
+    if(kind){const ring=[];for(let y=a.y-a.r;y<=a.y+a.r;y++)for(let x=a.x-a.r;x<=a.x+a.r;x++){const d=Math.hypot(x-a.x,y-a.y);if(d<a.r-1.6||d>a.r+.4)continue;
+        if(Math.abs((x-a.x)*od[1]-(y-a.y)*od[0])<=1&&(x-a.x)*od[0]+(y-a.y)*od[1]>0)continue;if(Math.abs((x-a.x)*pd[1]-(y-a.y)*pd[0])<=1&&(x-a.x)*pd[0]+(y-a.y)*pd[1]>0)continue;
+        if(bt&&Math.abs(x-bt.x)<=1&&Math.abs(y-bt.y)<=2)continue;const q=id(x,y);if(map[q]!==G||PROPAT[q]||CHESTS[q])continue;ring.push({x,y})}
+      ring.sort(()=>r()-.5);let n=0;for(const c of ring){if(n>=16)break;if(props.some(p=>p.t===kind&&Math.abs(p.tx-c.x)+Math.abs(p.ty-c.y)<2&&r()<.5))continue;addProp(kind,c.x,c.y,true,{v:(r()*3)|0,big:r()<.4});n++}}}
+  if(ty==='cave')many('moonmilk',7,(x,y)=>treeN(x,y)>=3,true,null,10);
+  if(ty==='plains')many('poppies',7,any,false,null,10);
+  if(ty==='cave')many('crystalspire',14,(x,y)=>treeN(x,y)>=2,true,()=>({v:(r()*3)|0,big:r()<.4}),6);
+  if(ty==='cave'){many('crystal',24,(x,y)=>treeN(x,y)>=2,true,null,4);many('minecart',5,road1,true,null,8);many('orevein',9,(x,y)=>treeN(x,y)>=3,true,null,6);many('timber',8,(x,y)=>treeN(x,y)>=2,true,null,6)}
   if(ty==='plains'){many('flowers',12,any,false,null,5);many('sheep',8,(x,y)=>!nearType(x,y,[WATER],1),false,()=>({}),5);many('hive',3,hid,true,null,10);many('haystack',5,any,true,null,8)}
   if(ty==='swamp'){many('boat',4,(x,y)=>nearType(x,y,[BOG],1),true,null,8);let fr=0;for(const t of tiles){if(fr>=24)break;const tt=map[id(t.x,t.y)];if(tt!==G&&tt!==MUD)continue;if(!nearType(t.x,t.y,[BOG],1)||PROPAT[id(t.x,t.y)])continue;if(props.some(p=>p.t==='frog'&&Math.hypot(p.tx-t.x,p.ty-t.y)<3))continue;addProp('frog',t.x,t.y,false);fr++}}
   if(ty==='swamp'&&LV.zi===1)place('frogking',(x,y)=>nearType(x,y,[BOG],2),false,null,6);
   const treeSpots=(type,near)=>{const out=[];for(let y=3;y<MH-3;y++)for(let x=3;x<MW-3;x++){if(map[id(x,y)]!==type||PROPAT[id(x,y)]||inPocket(x,y))continue;if(!touchesReach(REACH,x,y))continue;if(near&&!nearType(x,y,[ROAD],1))continue;out.push({x,y})}return out.sort(()=>r()-.5)};
   if(ty==='woods'||ty==='swamp'){treeSpots(DEAD).slice(0,3).forEach(s=>addProp('nest',s.x,s.y,false,{tree:1}));treeSpots(DEAD).filter(s=>!PROPAT[id(s.x,s.y)]).slice(0,3).forEach(s=>addProp('chime',s.x,s.y,false,{tree:1}))}
   if(ty!=='cave')treeSpots(ty==='swamp'?PINE:OAK,true).slice(0,6).forEach(s=>addProp('owl',s.x,s.y,false,{tree:1}));
+  /* great mushrooms all through the fen, in little clusters. Placed last, never right beside another thing, and taken out again if they cut anything off */
+  if(ty==='swamp'){
+    const reach=(s,p)=>s[id(p.tx,p.ty)]||touchesReach(s,p.tx,p.ty),s0=flood(true),base=props.filter(p=>p.t!=='bigshroom'&&reach(s0,p));
+    const near1=(x,y)=>props.some(p=>Math.abs(p.tx-x)<=1&&Math.abs(p.ty-y)<=1&&p.t!=='bigshroom'),put=[];let n=0;
+    const ok=(x,y)=>{const q=id(x,y);return map[q]===G&&REACH[q]&&!PROPAT[q]&&!CHESTS[q]&&!inPocket(x,y)&&!near1(x,y)&&!(LV.arena&&Math.hypot(x-LV.arena.x,y-LV.arena.y)<LV.arena.r+4)&&solidOK(x,y)};
+    for(const t of tiles.slice().sort(()=>r()-.5)){if(n>=26)break;if(!ok(t.x,t.y))continue;if(props.some(p=>p.t==='bigshroom'&&Math.hypot(p.tx-t.x,p.ty-t.y)<6))continue;
+      put.push(addProp('bigshroom',t.x,t.y,true,{v:(r()*3)|0,big:r()<.35}));n++;
+      for(const[dx,dy]of[[1,0],[-1,1],[0,1],[1,1]]){if(r()<.45)continue;const x=t.x+dx,y=t.y+dy;if(ok(x,y))put.push(addProp('bigshroom',x,y,true,{v:(r()*3)|0,big:false}))}}
+    const allOK=()=>{const s=flood(true);return base.every(p=>reach(s,p))};
+    while(put.length&&!allOK()){const p=put.pop();if(!p)continue;props.splice(props.indexOf(p),1);delete PROPAT[id(p.tx,p.ty)];map[id(p.tx,p.ty)]=G}}
   mapExtras({r,place,many,any,hid,road1,openish,find,solidOK,ty});
 }
 
@@ -1185,6 +1277,12 @@ function* chunkGen(cx,cy){
     else if(t===DEEP){c=[6+patch*4,12+patch*6,22+patch*8];if(((px*3+py*7)%41)<1)c=[40,60,80]}
     else if(t===WATER){c=ty==='cave'?[10+patch*6,18+patch*8,30+patch*10]:[38+patch*16,90+patch*24,140+patch*26];if(((px*2+py*5)%37)<1)c=ty==='cave'?[40,60,80]:[150,200,230]}
     else if(t===MUD)c=ty==='swamp'?(n>.93?[88,76,48]:[64+patch*12,54+patch*10,32+patch*6]):[26+patch*8,29+patch*8,19+patch*5];
+    /* castle stone: dressed blocks on top, a darker face where the wall drops to the ground, merlons along the outer edges */
+    else if(t===CASTLE){const ab=tAt(tx,ty2-1)!==CASTLE,be=tAt(tx,ty2+1)!==CASTLE,lf=tAt(tx-1,ty2)!==CASTLE,rt=tAt(tx+1,ty2)!==CASTLE,row=lyy>>2,joint=(lyy&3)===0||((lx+(row%2)*4)&7)===0;
+      c=joint?[78+n*8,74+n*7,66+n*6]:[124+patch*10+n*14,118+patch*9+n*12,104+patch*8+n*10];
+      if(be&&lyy>=8){const r2=(lyy-8)>>2,j2=((lyy-8)&3)===0||((lx+(r2%2)*4)&7)===0;c=lyy===8?[30,28,26]:j2?[46,44,40]:[84+n*10,80+n*9,72+n*8]}
+      else if((ab&&lyy<4)||(lf&&lx<3)||(rt&&lx>12)){const gap=ab&&lyy<4?((lx>>2)&1):lf&&lx<3?((lyy>>2)&1):((lyy>>2)&1);c=gap?[38,36,32]:[150+n*14,144+n*12,128+n*10];if((ab&&lyy===0)||(lf&&lx===0)||(rt&&lx===15))c=[20,18,16]}}
+    else if(t===FLAG){const row=lyy>>3,joint=(lyy&7)===0||((lx+(((ty2*2+row)%2))*8)&15)===0;c=joint?[62+n*6,58+n*6,50+n*5]:[112+patch*12+n*12,104+patch*11+n*11,88+patch*9+n*9]}
     else if(t===WALL){const below=tAt(tx,ty2+1)!==WALL,above=tAt(tx,ty2-1)!==WALL;c=[20+patch*6+n*6,18+patch*5+n*5,18+patch*5+n*4];
       if(below&&lyy>=11)c=lyy===11?[78,72,66]:[50+n*12,46+n*10,42+n*8];if(above&&lyy<1)c=[8,7,7];if(n>.985)c=[60,56,52]}
     else if(t===BLDG){c=grass(patch,n,.6)}
@@ -1208,11 +1306,16 @@ function* chunkGen(cx,cy){
     else if(o.k==='skull'){x.fillStyle='#a49d86';x.fillRect(o.x,o.y,3,2);x.fillRect(o.x+1,o.y+2,1,1);x.fillStyle='#1a1a14';x.fillRect(o.x,o.y+1,1,1);x.fillRect(o.x+2,o.y+1,1,1)}
     else if(o.k==='rug'){x.fillStyle=o.c;x.fillRect(o.x,o.y,o.w,o.h);x.strokeStyle='rgba(200,170,100,.35)';x.strokeRect(o.x+2.5,o.y+2.5,o.w-5,o.h-5)}
     else if(o.k==='window'){x.fillStyle='#050403';x.fillRect(o.x+4,o.y+2,8,9);x.fillStyle='#2a3a4a';x.fillRect(o.x+5,o.y+3,6,7);x.fillStyle='#4a5a6a';x.fillRect(o.x+5,o.y+3,2,3);x.fillStyle='#050403';x.fillRect(o.x+7,o.y+3,1,7);x.fillRect(o.x+5,o.y+6,6,1)}}}
+  if(LV.fort&&LV.fort.cannons)for(const k of LV.fort.cannons){if(k.x<tx0||k.x>tx1||k.y<ty0||k.y>ty1)continue;const cx=k.x*T+8,cy=k.y*T+8;
+    x.fillStyle='#3a2a1a';x.fillRect(cx-5,cy-3,10,6);x.fillStyle='#5a4028';x.fillRect(cx-4,cy-2,8,4);x.fillStyle='#0a0a0c';
+    if(k.dx)x.fillRect(k.dx>0?cx:cx-12,cy-2,12,4);else x.fillRect(cx-2,k.dy>0?cy:cy-12,4,12);x.fillStyle='#4a4e54';if(k.dx)x.fillRect(k.dx>0?cx:cx-12,cy-2,12,1);else x.fillRect(cx-2,k.dy>0?cy:cy-12,1,12);
+    x.fillStyle='#050505';if(k.dx)x.fillRect(k.dx>0?cx+11:cx-12,cy-1,1,2);else x.fillRect(cx-1,k.dy>0?cy+11:cy-12,2,1)}
   for(const f of fires){if(f.x<tx0||f.x>tx1||f.y<ty0||f.y>ty1)continue;x.fillStyle='#3a3a36';for(let a=0;a<10;a++){const an=a/10*6.283;x.fillRect(f.x*T+8+Math.cos(an)*9-1|0,f.y*T+10+Math.sin(an)*6-1|0,3,2)}x.fillStyle='#0c0a08';x.beginPath();x.ellipse(f.x*T+8,f.y*T+10,7,4,0,0,7);x.fill()}
   for(const p of props){if(p.tx<tx0||p.tx>tx1||p.ty<ty0||p.ty>ty1)continue;
     if(p.t==='ring')for(let a=0;a<9;a++){const an=a/9*6.283,mx=p.x+Math.cos(an)*12|0,my=p.y+Math.sin(an)*9|0;x.fillStyle='#d8c8a8';x.fillRect(mx,my,3,1);x.fillStyle='#8a3a3a';x.fillRect(mx+1,my,1,1);x.fillStyle='#8a8070';x.fillRect(mx+1,my+1,1,1)}
     if(p.t==='flowers'){const rr=mulberry(p.tx*99+p.ty);for(let k=0;k<26;k++){const fx=p.x-12+rr()*24|0,fy=p.y-9+rr()*18|0;x.fillStyle='#3a7a2a';x.fillRect(fx+1,fy+1,1,2);x.fillStyle=['#e84a4a','#f0d84a','#f4f4f4','#b86ae8','#f08ac8'][(rr()*5)|0];x.fillRect(fx,fy,3,1);x.fillRect(fx+1,fy-1,1,3)}}}
-  for(const ex of[LV.pocket&&LV.pocket.exit,LV.back])if(ex&&ex.x>=tx0&&ex.x<=tx1&&ex.y>=ty0&&ex.y<=ty1){const px=ex.x*T,py=ex.y*T;x.fillStyle='#000';x.beginPath();x.ellipse(px+8,py+9,7,6,0,0,7);x.fill();x.fillStyle='#3a3530';for(let a=0;a<12;a++){const an=a/12*6.283;x.fillRect(px+8+Math.cos(an)*8-1|0,py+9+Math.sin(an)*7-1|0,2,2)}}
+  /* the ways between areas are drawn with the trees (they stand up out of the ground); any other exit is a dark hole */
+  for(const ex of[LV.pocket&&LV.pocket.exit,LV.back])if(ex&&ex.x>=tx0&&ex.x<=tx1&&ex.y>=ty0&&ex.y<=ty1&&!(typeof wayKind==='function'&&wayKind(ex))){const px=ex.x*T,py=ex.y*T;x.fillStyle='#000';x.beginPath();x.ellipse(px+8,py+9,7,6,0,0,7);x.fill()}
   gc._hd=gh;gc._nohd=1;return gc}
 /* ================= AUDIO ================= */
 const AU={ctx:null,m:null,muted:false,
@@ -1451,8 +1554,8 @@ const FL={
 };
 const CROW_LINES=["“Mortimer. I trade. Coin for things, things for coin.”","“Keep your fires lit. They are the only safe places on the road.”","“Some of the trees by the road are not trees. Keep your distance.”","“I don't ask where things come from.”","“Ring the low bells first.”","“Each place has something at its heart, bigger than the rest. Be ready before you go to it.”","“When it raises its arm, raise your shield.”","“Most knights who come this way do not come back.”"];
 const FROG_LINES=["“I am the King of this Fen,” says the frog. “Kneel.”","“I was a man once, and a prince. That was a long time ago.”","“The Mother sleeps in the deep water. Leave her be, if you can.”","“Flies,” says the King, “are the only honest creatures left.”"];
-const EXIT_TXT=["A passage slopes down into the dark. Cold air comes up it.","A long climb up through wet stone. At the top, grey light and the smell of rot.","The trees thin. Beyond them, daylight."];
-const BACK_TXT=["The tunnel climbs back towards the woods.","The path drops back down towards the tunnels.","The trees close in again, back towards the fen."];
+const EXIT_TXT=["A cave opens in the rock face. Cold air comes out of it, and the passage slopes down into the dark.","A long climb up through wet stone. At the top, grey light and the smell of the fen.","Wooden steps climb the bank out of the fen. At the top, open fields."];
+const BACK_TXT=["Daylight at the top of the slope. The woods are that way.","The tunnel goes back into the hill, towards the caves.","The steps go down the bank into the fen."];
 /* ---- items ---- r: 0 junk 1 common 2 uncommon 3 rare 4 epic 5 legendary ---- */
 const RARITY=[{n:'Junk',c:'#8a8a8a'},{n:'Common',c:'#e6e6e6'},{n:'Uncommon',c:'#5fd35f'},{n:'Rare',c:'#4a9eff'},{n:'Epic',c:'#b55cff'},{n:'Legendary',c:'#ff8c1a'}];
 const ITEMS={
@@ -2344,7 +2447,7 @@ async function useProp(p){const t=pkey(p);if(NEWP[t])return NEWP[t].use(p);
     case'statue':p.read=1;if(!p.ins)p.ins=takeU('statue',FL.statue)||'A worn statue. The weather has taken its face.';await showEp('A statue',p.ins);break;
     case'well':well(p);break;case'hungry':hungry(p);break;
     case'bell':ringBell(p);break;case'brazier':lightBrazier(p);break;case'crystal':SFX.bell((Math.random()*4)|0);p.flash=.8;break;
-    case'bush':p.st=1;SFX.eat();if(p.bad){P.hp=Math.max(1,P.hp-6);notice('The berries are bitter. Your stomach turns. −6 HP.')}else{const h=Math.min(10,P.max-P.hp);P.hp+=h;notice(`You eat the berries. +${h} HP.`)}break;
+    case'bush':p.st=1;eatBerries(p);break;
     case'corpse':{const c=await dialog('The dead',p.note,['Search the body','Leave']);if(c!==0)break;p.st=1;
       notice(grant([lootRoll(Math.min(3,AR.i+1))],chance(.6)?coinsFor():0)||'Nothing of use.');break}
     case'mound':p.st=1;SFX.dig();if(P.tools.shovel){notice('You dig properly, with the shovel, down past where anyone stopped before. '+grant([chance(.4)?genGear(tierHere(),{min:2}):lootRoll(tierHere())],coinsFor()*2));break}notice((LV.type==='cave'?'You heave the rubble aside. ':'You dig into the loose earth. ')+(rummage(tierHere(),chance(.4)?coinsFor():0,'Nothing.')));break;
@@ -2648,14 +2751,16 @@ function drawHook(){if(!HOOK)return;if(HOOK.pole)return;const k=HOOK.t,u=Math.mi
   ctx.strokeStyle='#5a4030';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(hx-cam.x,hy-cam.y);ctx.stroke();ctx.fillStyle='#d8dde3';ctx.fillRect(Math.round(hx-cam.x)-1,Math.round(hy-cam.y)-1,3,3)}
 function updWorld(dt){if(HOOK){updHook(dt);return}checkEvSpots();revealVeiled();
   worldTime+=dt;eventT-=dt;if(eventT<=0){eventT=300+Math.random()*420;triggerEvent()}
-  if(EV.blood>0)EV.blood-=dt;if(EV.fog>0)EV.fog-=dt;gateCd-=dt;
+  if(EV.blood>0)EV.blood-=dt;if(EV.fog>0)EV.fog-=dt;gateCd-=dt;fxTick(dt);
   P.slashT-=dt;P.slashCd-=dt;P.inv-=dt;bellCd-=dt;stT+=dt;if(stT>=4){stT=0;stTick()}
   {let vx=padV.x,vy=padV.y;
     if(keys.arrowleft||keys.a)vx=-1;if(keys.arrowright||keys.d)vx=1;if(keys.arrowup||keys.w)vy=-1;if(keys.arrowdown||keys.s)vy=1;
+    /* things you ate: muddled feet go the wrong way, dizziness makes you drift */
+    if(P.fx&&P.fx.rev>0){vx=-vx;vy=-vy}if(P.fx&&P.fx.dizzy>0&&(vx||vy)){vx+=Math.sin(worldTime*2.1)*.55;vy+=Math.cos(worldTime*1.7)*.55}
     const mag=Math.hypot(vx,vy);P.moving=mag>.1;
     if(P.moving){vx/=Math.max(mag,1);vy/=Math.max(mag,1);
       if(P.slashT<=0)P.face=Math.abs(vx)>Math.abs(vy)?(vx<0?'left':'right'):(vy<0?'up':'down');
-      const mud=tAt(Math.floor(P.x/T),Math.floor((P.y-2)/T))===MUD,sp=60*P.speed*DEV.spd*(mud?(LV.type==='swamp'?.45:.6):1)*dt,ox=P.x,oy=P.y;moveBody(P,vx*sp,vy*sp);pzUpdate(dt,vx,vy);rec('dist',Math.hypot(P.x-ox,P.y-oy)/T);P.anim+=dt*(mud?.5:1)}}
+      const mud=tAt(Math.floor(P.x/T),Math.floor((P.y-2)/T))===MUD,sp=60*P.speed*DEV.spd*(mud?(LV.type==='swamp'?.45:.6):1)*fxSpeed()*dt,ox=P.x,oy=P.y;moveBody(P,vx*sp,vy*sp);pzUpdate(dt,vx,vy);rec('dist',Math.hypot(P.x-ox,P.y-oy)/T);P.anim+=dt*(mud?.5:1)}}
   const ptx=Math.floor(P.x/T),pty=Math.floor((P.y-3)/T),here=tAt(ptx,pty);reveal(ptx,pty);
   if(LV.kind==='zone'){
     if(here===EXIT){if(exitAway){exitAway=false;(LV.back&&ptx===LV.back.x&&pty===LV.back.y)?backDialog():exitDialog()}}else exitAway=true;
@@ -2793,7 +2898,9 @@ function drawWorld(){
   for(let ty=Math.max(0,ty0);ty<=Math.min(MH-1,ty1);ty++)for(let tx=Math.max(0,tx0);tx<=Math.min(MW-1,tx1);tx++){const t=map[id(tx,ty)];
     if(t===BOG||t===WATER){const s=Math.sin(time*1.5+tx*1.7+ty*2.3);if(s>.6){ctx.fillStyle=t===WATER&&type==='plains'?'rgba(220,240,255,.5)':'rgba(90,130,90,.25)';ctx.fillRect(tx*T+((hash(tx,ty)*10)|0)-cam.x,ty*T+6+((s*3)|0)-cam.y,4,1)}
       if(t===BOG&&hash(tx*3,ty)<.15&&((time*.7+hash(tx,ty)*9)%3)<.4){ctx.fillStyle='#4a6a3a';ctx.fillRect(tx*T+8-cam.x,ty*T+8-cam.y,2,2)}}
-    else if(t===GATE){ctx.fillStyle=`rgba(255,230,180,${.12+Math.sin(time*2+tx+ty)*.06})`;ctx.fillRect(tx*T-cam.x,ty*T-cam.y,T,T)}}
+    /* the way on to the next map: the path simply carries on off the edge, fading into the dark */
+    else if(t===GATE){const ex=tx===0?-1:tx===MW-1?1:0,ey=ty===0?-1:ty===MH-1?1:0,X=tx*T-cam.x,Y=ty*T-cam.y,g=ctx.createLinearGradient(ex<0?X+T:ex>0?X:X,ey<0?Y+T:ey>0?Y:Y,ex<0?X:ex>0?X+T:X,ey<0?Y:ey>0?Y+T:Y);
+      g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.85)');ctx.fillStyle=g;ctx.fillRect(X,Y,T,T)}}
   const vis=(x,y,m)=>x>cam.x-m&&x<cam.x+W+m&&y>cam.y-m&&y<cam.y+H+m;
   for(const p of props){if(p.solid||p.tree||p.t==='ring'||p.t==='flowers'||p.t==='sheep')continue;if(!vis(p.x,p.y,24))continue;const x=Math.round(p.x-cam.x),y=Math.round(p.y-cam.y);
     if(NEWP[p.t]&&NEWP[p.t].flat)NEWP[p.t].flat(p,x,y);else if(p.t==='corpse')ctx.drawImage(PS.corpse,x-7,y-2);else if(p.t==='mound')ctx.drawImage(p.st?PS.dug:PS.mound,x-6,y);
@@ -2813,6 +2920,8 @@ function drawWorld(){
   for(const b of LV.blds){const B=BTYPES[b.bt];if(b.x*T>cam.x+W+20||(b.x+B.fw)*T<cam.x-20||(b.y-6)*T>cam.y+H||(b.y+B.fh)*T<cam.y-10)continue;list.push({y:(b.y+B.fh)*T-1,b,k:'bld'})}
   for(const p of props)if(p.t==='sheep'&&vis(p.x,p.y,20))list.push({y:p.y+4,p,k:'sheep'});
   for(const m of mobs){if(!vis(m.x,m.y,80))continue;if(KINDS[m.kind].fly)continue;list.push({y:m.y,m,k:'mob'})}
+  /* the ways between areas stand up out of the ground, so they sort with the trees in front of and behind them */
+  for(const ex of[LV.pocket&&LV.pocket.exit,LV.back]){const k=ex&&wayKind(ex);if(k&&vis(ex.x*T+8,ex.y*T,60))list.push({y:ex.y*T+14,ex,k:'way',im:WAY_IMG[k]})}
   list.push({y:P.y,k:'player'});list.sort((a,b)=>a.y-b.y);
   for(const o of list){
     if(o.k==='tree'){const img=treeImg(o.t,o.tx,o.ty),j=((hash(o.tx+5,o.ty)*5)|0)-2,x0=o.tx*T+8-img.width/2+j,y0=o.ty*T+16-img.height;
@@ -2821,6 +2930,7 @@ function drawWorld(){
     else if(o.k==='rock')ctx.drawImage(ROCK,o.tx*T+1-cam.x,o.ty*T+7-cam.y);
     else if(o.k==='stone')ctx.drawImage(STONE,o.tx*T+4-cam.x,o.ty*T-3-cam.y);
     else if(o.k==='fire')drawFire(o.tx,o.ty);
+    else if(o.k==='way')ctx.drawImage(o.im,o.ex.x*T+8-(o.im.width>>1)-cam.x,o.ex.y*T+16-o.im.height-cam.y);
     else if(o.k==='chest'){const c=CHESTS[id(o.tx,o.ty)];ctx.drawImage(c&&c.open?CHEST_OPEN:CHEST_SPR,o.tx*T+1-cam.x,o.ty*T+4-cam.y)}
     else if(o.k==='prop')drawSolidProp(PROPAT[id(o.tx,o.ty)]);
     else if(o.k==='barrier')drawBarrier(o.tx,o.ty);else if(o.k==='bramble')drawBramble(o.tx,o.ty);else if(o.k==='gate2')drawGate2(o.tx,o.ty,o.t);else if(o.k==='crack')drawCrack(o.tx,o.ty);
@@ -2963,7 +3073,7 @@ function drawLight(){const type=LV.kind==='interior'?'inside':LV.type,vis=(x,y,m
   if(LV.type==='swamp'&&LV.kind==='zone'){ctx.strokeStyle='rgba(190,205,215,.13)';ctx.lineWidth=.5;ctx.beginPath();const n=Math.round(W*H/1800);for(let i=0;i<n;i++){const sp=150+(i*37%60),x=((i*97.3+time*sp*.3)%(W+20))-10,y=((i*53.7+time*sp)%(H+20))-10;ctx.moveTo(x,y);ctx.lineTo(x-1,y-4)}ctx.stroke()}
   /* choking fog: grey closes in to a few tiles round you (and things out there can't see you well either) */
   if(EV.fog>0&&LV.kind==='zone'){const a=Math.min(1,EV.fog/8),x=P.x-cam.x,y=P.y-10-cam.y,gr=ctx.createRadialGradient(x,y,22,x,y,95);gr.addColorStop(0,'rgba(120,130,120,0)');gr.addColorStop(1,`rgba(120,130,120,${.8*a})`);ctx.fillStyle=gr;ctx.fillRect(0,0,W,H)}
-  ctx.drawImage(getVig(),0,0)}
+  drawFx();ctx.globalAlpha=P.fx&&P.fx.sight>0?.3:1;ctx.drawImage(getVig(),0,0);ctx.globalAlpha=1}
 function getVig(){if(!VIG){VIG=cvs(W,H);const v=VIG.getContext('2d'),a=LV?VIGA[LV.kind==='interior'?'inside':LV.type]:.7,g=v.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${a})`);v.fillStyle=g;v.fillRect(0,0,W,H)}return VIG}
 
 /* riddles for the stone faces: first answer is right */
@@ -2979,7 +3089,7 @@ const RIDDLES=[{q:"The more you take, the more you leave behind.",a:['Footsteps'
 /* ================= BATTLE ================= */
 let B=null;
 /* walk into something without striking it first, and 1 time in 10 it gets the first blow */
-function startBattle(m,first){if(mode!=='world')return;if(first==='contact'&&Math.random()<.5)first='caught';mode='trans';$('#banner').classList.remove('on');P.slashT=0;P.roll=0;padV={x:0,y:0};hideTip();
+function startBattle(m,first){if(mode!=='world')return;cv.style.filter='';if(first==='contact'&&Math.random()<.5)first='caught';mode='trans';$('#banner').classList.remove('on');P.slashT=0;P.roll=0;padV={x:0,y:0};hideTip();
   SFX.sting();AU.setAmb(.35);transition(()=>{scene='battle';battleBegin(m,first)})}
 function transition(fn){TR={t:0,dur:1.05,fn,fired:false}}
 function drawTrans(){if(!TR)return;const t=TR.t;
@@ -3743,7 +3853,7 @@ function statSections(){const pb=(B&&B.pb)||{},sg=n=>n>0?'+'+n:'−'+Math.abs(n)
   return S}
 /* the run so far, for the Stats screen */
 function recSection(){const R=P.rec,n=k=>Math.round(R[k]||0),t=n('time'),hh=Math.floor(t/3600),mm=Math.floor(t/60)%60,d=R.dist||0,kk=R.kk||{},top=Object.keys(kk).sort((a,b)=>kk[b]-kk[a])[0],fmt=x=>x.toLocaleString('en-GB');
-  return['Record',[
+  return['Statistics',[
     ['Time played',hh?`${hh}h ${mm}m`:`${mm}m`,[],'Time spent in the game itself, not on the title screen.'],
     ['Distance walked',d>=1000?(d/1000).toFixed(1)+' km':Math.round(d)+' m',[],'Counting a pace of road as a metre.'],
     ['Fights won',fmt(n('won')),[],''],['Fights fled',fmt(n('fled')),[],''],['Deaths',fmt(n('deaths')),[],''],
@@ -4018,20 +4128,22 @@ function mapExtras(h){const D=mapDef(),r=h.r,W={any:h.any,hid:h.hid,road:h.road1
   for(const[t,n,w]of D.props||[]){h.many(t,n,W[w]||h.any,true,null,5);const have=props.filter(p=>p.t===t).length;if(have<n)h.many(t,n-have,h.any,true,null,3)}
   const pz=D.puzzle;
   /* puzzles never go right next to the boss pocket, where the paths can't always be joined up */
-  const okPz=(x,y)=>x>=10&&y>=10&&x<MW-11&&y<MH-12&&h.openish(x,y)&&!(LV.pocket&&x>LV.pocket.x0-9&&x<LV.pocket.x1+9&&y>LV.pocket.y0-9&&y<LV.pocket.y1+9);
+  /* ...nor in or right beside Harrow's fortress */
+  const inF=(x,y)=>!!LV.fort&&x>=LV.fort.x0-6&&x<=LV.fort.x1+6&&y>=LV.fort.y0-6&&y<=LV.fort.y1+6;
+  const okPz=(x,y)=>x>=10&&y>=10&&x<MW-11&&y<MH-12&&h.openish(x,y)&&!inF(x,y)&&!(LV.pocket&&x>LV.pocket.x0-9&&x<LV.pocket.x1+9&&y>LV.pocket.y0-9&&y<LV.pocket.y1+9);
   /* three named statues, each meant to face its own way. What each one watched is cut on a stone somewhere else on the map */
-  if(pz==='statues'){const s=h.find(okPz,5)||h.find(h.openish,5)||h.find(h.any,4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);LV.pz={t:'statues',x:s.x,y:s.y};
+  if(pz==='statues'){const s=h.find(okPz,5)||h.find((x,y)=>h.openish(x,y)&&!inF(x,y),5)||h.find((x,y)=>h.any(x,y)&&!inF(x,y),4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);LV.pz={t:'statues',x:s.x,y:s.y};
     const NM=['The Soldier','The Priest','The Widow'],SAY=[n=>`${n.toUpperCase()} LOOKED NORTH,\nTO THE MOUNTAINS.`,n=>`${n.toUpperCase()} WATCHED THE EAST,\nWHERE THE SUN CAME UP OVER THE CASTLE.`,n=>`${n.toUpperCase()} FACED SOUTH,\nDOWN THE OLD ROAD.`,n=>`${n.toUpperCase()} KEPT WATCH ON THE WEST,\nWHERE THE SUN WENT DOWN.`];
     const wants=[0,1,2].map(()=>(r()*4)|0);if(wants.every(w=>w===wants[0]))wants[2]=(wants[2]+1+((r()*3)|0))%4;
     [[-3,0],[3,0],[0,-3]].forEach(([dx,dy],i)=>{const x=s.x+dx,y=s.y+dy;if(map[id(x,y)]!==G)map[id(x,y)]=G;addProp('pzstatue',x,y,true,{i,nm:NM[i],want:wants[i],f:(wants[i]+1+((r()*3)|0))%4})});
     addProp('pzclue',s.x,s.y+3,true,{text:'THREE WATCHERS.\nEACH LOOKED ITS OWN WAY.\nWHAT THEY WATCHED IS CUT ON STONES ELSEWHERE.',title:'A carved stone'});
-    const far=(x,y)=>Math.hypot(x-s.x,y-s.y)>22&&h.openish(x,y)&&!props.some(p=>p.t==='pzclue'&&Math.hypot(p.tx-x,p.ty-y)<14);
+    const far=(x,y)=>Math.hypot(x-s.x,y-s.y)>22&&h.openish(x,y)&&!inF(x,y)&&!props.some(p=>p.t==='pzclue'&&Math.hypot(p.tx-x,p.ty-y)<14);
     for(let i=0;i<3;i++){const c=h.find(far,6)||h.find((x,y)=>Math.hypot(x-s.x,y-s.y)>14&&h.any(x,y),4);if(c)addProp('pzclue',c.x,c.y,true,{text:SAY[wants[i]](NM[i]),title:'A carved stone'})}}}
-  if(pz==='graves'){const s=h.find(okPz,5)||h.find(h.openish,5)||h.find(h.any,4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);const foe={0:'ghoul',1:'revenant',2:'drowned',3:'barrowknight'}[AR.i]||'ghoul';const yrs=[(r()*40|0)+300,(r()*40|0)+350,(r()*40|0)+400].sort(()=>r()-.5);const names=['ODO','BERTRAN','MAUD','ISOLDE','HUGH','AGNES','WAT','CECILY'].sort(()=>r()-.5);
+  if(pz==='graves'){const s=h.find(okPz,5)||h.find((x,y)=>h.openish(x,y)&&!inF(x,y),5)||h.find((x,y)=>h.any(x,y)&&!inF(x,y),4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);const foe={0:'ghoul',1:'revenant',2:'drowned',3:'barrowknight'}[AR.i]||'ghoul';const yrs=[(r()*40|0)+300,(r()*40|0)+350,(r()*40|0)+400].sort(()=>r()-.5);const names=['ODO','BERTRAN','MAUD','ISOLDE','HUGH','AGNES','WAT','CECILY'].sort(()=>r()-.5);
     const rule=(r()*2)|0,best=rule?Math.max(...yrs):Math.min(...yrs);LV.pz={t:'graves',foe};
     [[-3,0],[0,0],[3,0]].forEach(([dx],k)=>{const x=s.x+dx,y=s.y;map[id(x,y)]=G;addProp('pzgrave',x,y,true,{ep:`${names[k]}\nDIED IN THE YEAR ${yrs[k]}`,right:yrs[k]===best})});
     addProp('pzclue',s.x,s.y+3,true,{title:'A note, nailed to a post',text:rule?'“We buried the money with the last man we put in the ground. No one robs a new grave.”':'“The old man made us put it in with the first one, who\'s been down there longest. Said nobody would dig that deep.”'})}}
-  if(pz==='totems'){const s=h.find(okPz,5)||h.find(h.openish,5)||h.find(h.any,4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);const seq=[0,1,2,3].sort(()=>r()-.5).concat([(r()*4)|0]);LV.pz={t:'totems',seq,inp:[],x:s.x,y:s.y};
+  if(pz==='totems'){const s=h.find(okPz,5)||h.find((x,y)=>h.openish(x,y)&&!inF(x,y),5)||h.find((x,y)=>h.any(x,y)&&!inF(x,y),4);if(s){s.x=clamp(s.x,9,MW-10);s.y=clamp(s.y,9,MH-11);const seq=[0,1,2,3].sort(()=>r()-.5).concat([(r()*4)|0]);LV.pz={t:'totems',seq,inp:[],x:s.x,y:s.y};
     [[-2,-2],[2,-2],[-2,2],[2,2]].forEach(([dx,dy],i)=>{const x=s.x+dx,y=s.y+dy;map[id(x,y)]=G;addProp('pztotem',x,y,true,{i})});map[id(s.x,s.y+4)]=G;addProp('pzeye',s.x,s.y+4,true,{})}}
   /* roadside happenings: a few spots on the paths where something will happen the first time you pass */
   LV.evs=[];const ev=(D.evs||[]).slice();for(const e of ev){const s=h.find((x,y)=>h.road1(x,y)&&!(LV.start&&Math.hypot(x-LV.start.x,y-LV.start.y)<14)&&!(LV.evs.some(q=>Math.hypot(q.x-x,q.y-y)<20)),3);if(s)LV.evs.push({x:s.x,y:s.y,id:e,done:0})}}
@@ -4762,6 +4874,108 @@ function clickPick(r,ty,zi){const pool=CPOOL[ty];if(!pool)return null;
 function clickPutBack(e){if(CDECK&&e)CDECK.deck.push(e)}
 NEWP.sm={u:p=>p.st?0:1,flat:(p,x,y)=>{const k=SMKI[p.k];if(!k)return;if(p.st)ctx.globalAlpha=.55;ctx.drawImage(k.img,x-7,y-6);ctx.globalAlpha=1},use:async p=>useSmall(p)};
 
+/* ---- great mushrooms (the fen, and round the Rot Mother) and thicket bushes (round the Elder): scenery that blocks the way ---- */
+const SHROOM_IMG=[0,1,2].map(v=>[0,1].map(big=>{const w=big?20:14,h=big?24:17,cap=[['#8a2a1a','#c8503a','#e8d8c0'],['#6a5a3a','#9a8458','#d8ccaa'],['#4a3a5a','#7a5a8a','#c8b8d8']][v];
+  return mk(w,h,f=>{const sw=big?4:3,sx=Math.round(w/2-sw/2),ch=big?9:6;f('#050403',sx-1,ch-1,sw+2,h-ch+1);f('#d8ccb0',sx,ch,sw,h-ch-1);f('#a89878',sx+sw-1,ch,1,h-ch-1);
+    f('#050403',0,1,w,ch);f('#050403',2,0,w-4,1);f(cap[0],1,1,w-2,ch-1);f(cap[1],2,1,w-4,ch-3);f(cap[1],3,0,w-6,1);
+    for(const[a,b]of[[3,2],[w-6,3],[Math.round(w/2),1],[5,ch-3]])if(a>1&&a<w-2)f(cap[2],a,b,big?2:1,1);f('#3a2a1a',1,ch-1,w-2,1)})}));
+const THICKET_IMG=[0,1,2].map(v=>mk(16,16,f=>{f('#050403',0,3,16,13);f('#0e1e0e',1,4,14,11);f('#1e3a1c',2,4,12,9);for(const[a,b]of[[3,5],[9,4],[6,8],[11,9],[4,11]])f(['#2e5a28','#3a6a2a','#264a22'][v],a,b,3,2);f('#3a1a1a',1,12,14,1);f('#3a1a1a',3,9,1,4);f('#3a1a1a',12,7,1,6)}));
+Object.assign(NEWP,{
+  bigshroom:{u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const im=SHROOM_IMG[p.v||0][p.big?1:0];ctx.drawImage(im,Math.round(bx-im.width/2),Math.round(by-im.height+2))}},
+  thicketbush:{u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const im=THICKET_IMG[p.v||0];ctx.drawImage(im,Math.round(bx-8),Math.round(by-15))}}});
+
+/* ---- crystal spires: clusters of tall shards, round the Colossus and through the caves ---- */
+const SPIRE_IMG=[0,1,2].map(v=>[0,1].map(big=>{const w=big?18:13,h=big?26:18,pal=[['#2a4a8a','#4a8ad8','#a8d8ff'],['#4a2a7a','#7a4ab8','#d0b0ff'],['#2a6a6a','#4aa8a8','#b0f0e8']][v];
+  return mk(w,h,f=>{const sh=big?[[2,h*.55,4],[6,h,5],[12,h*.7,4]]:[[1,h*.6,3],[4,h,4],[9,h*.7,3]];
+    for(const[x0,hh,ww]of sh){const top=Math.round(h-hh);f('#050403',x0-1,top+1,ww+2,h-top-1);for(let y=top;y<h;y++){const k=Math.min(ww,Math.round((y-top+1)*ww/3));f(pal[0],x0+Math.round((ww-k)/2),y,k,1)}
+      f(pal[1],x0+1,top+3,Math.max(1,ww-2),h-top-5);f(pal[2],x0+1,top+2,1,Math.round((h-top)/2))}
+    f('#1a1a1e',0,h-2,w,2)})}));
+Object.assign(NEWP,{crystalspire:{u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const im=SPIRE_IMG[p.v||0][p.big?1:0];ctx.drawImage(im,Math.round(bx-im.width/2),Math.round(by-im.height+2))}}});
+
+/* ---- Harrow's courtyard: cannons, weapon racks, his banners (scenery) ---- */
+const FCANNON_IMG=mk(18,14,f=>{f('#050403',1,6,16,7);f('#4a3424',2,7,14,5);f('#6a4a2a',2,7,14,1);f('#050403',2,10,5,4);f('#050403',11,10,5,4);f('#3a2a1a',3,11,3,2);f('#3a2a1a',12,11,3,2);
+  f('#050403',3,2,14,6);f('#2a2c30',4,3,12,4);f('#5a5e64',4,3,12,1);f('#0a0a0c',15,3,2,4);f('#6a6e74',6,4,1,1)});
+const RACK_IMG=[0,1].map(v=>mk(16,18,f=>{f('#050403',1,4,14,14);f('#4a3424',2,5,12,2);f('#4a3424',2,14,12,2);f('#4a3424',2,5,2,12);f('#4a3424',12,5,2,12);
+  for(const a of v?[4,7,10]:[5,9]){f('#8a8e94',a,1,1,13);f('#c8ccd0',a,1,1,3);f('#5a4028',a-1,10,3,1)}}));
+const FBANNER_IMG=mk(12,30,f=>{f('#050403',5,0,2,30);f('#5a4028',5,1,1,28);f('#c9a24b',4,0,4,2);f('#050403',0,3,12,15);f('#1a3a7a',1,4,10,13);f('#2a4a9a',1,4,10,2);
+  f('#c9a24b',4,7,4,5);f('#c9a24b',3,8,1,1);f('#c9a24b',8,8,1,1);f('#c9a24b',5,6,2,1);f('#050403',1,17,3,2);f('#050403',8,17,3,2)});
+Object.assign(NEWP,{
+  fcannon:{u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const fl=(p.dx||0)<0;ctx.save();ctx.translate(Math.round(bx),Math.round(by));if(fl)ctx.scale(-1,1);ctx.drawImage(FCANNON_IMG,-9,-13);ctx.restore()}},
+  rack:{u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const im=RACK_IMG[p.v||0];ctx.drawImage(im,Math.round(bx-8),Math.round(by-17))}},
+  fbanner:{u:()=>0,use:async()=>{},draw:(p,bx,by)=>{ctx.drawImage(FBANNER_IMG,Math.round(bx-6),Math.round(by-29))}}});
+
+/* ---- the ways between areas: something you can see you are walking into, and back out of ---- */
+const WAY_IMG={
+  /* woods → caves: an outcrop of rock with a cave mouth in it */
+  cavemouth:mk(52,44,f=>{f('#050403',2,8,48,36);f('#050403',8,2,36,8);f('#4a4844',3,9,46,35);f('#5a5852',9,3,34,8);f('#6a6862',12,4,10,3);f('#6a6862',30,5,9,3);f('#3a3834',3,30,46,14);
+    for(const[a,b,w]of[[6,14,8],[38,12,7],[20,22,6],[40,26,6],[5,26,5]])f('#2e2c2a',a,b,w,1);f('#2a4a1e',8,2,10,2);f('#3a6a2a',10,1,6,1);f('#2a4a1e',33,3,8,2);f('#2a4a1e',3,9,4,3);
+    f('#050403',17,20,18,24);f('#050403',19,17,14,3);f('#050403',21,15,10,2);f('#0a0806',18,21,16,23);f('#1a1612',19,22,2,22);f('#2a2620',14,40,24,4);f('#3a3630',12,42,6,2);f('#3a3630',34,41,6,3)}),
+  /* caves → back to the woods: an arch with daylight beyond */
+  daylight:mk(52,44,f=>{f('#050403',2,6,48,38);f('#3a3834',3,7,46,37);f('#4a4844',6,8,40,10);for(const[a,b,w]of[[6,14,8],[38,12,7],[40,28,6],[5,30,5]])f('#262422',a,b,w,1);
+    f('#050403',16,16,20,28);f('#050403',18,13,16,3);f('#e8e4b8',18,17,16,27);f('#f8f4d8',20,18,12,10);f('#c8d8a0',18,32,16,12);f('#8ab060',18,38,16,6);f('#d8d4a8',20,14,12,3);
+    f('rgba(255,250,210,.35)',12,40,28,4)}),
+  /* caves → the fen: a tunnel mouth with grey-green light and mist */
+  tunnelout:mk(52,44,f=>{f('#050403',2,6,48,38);f('#3a3834',3,7,46,37);f('#4a4844',6,8,40,10);for(const[a,b,w]of[[6,14,8],[38,12,7],[40,28,6],[5,30,5]])f('#262422',a,b,w,1);
+    f('#050403',16,16,20,28);f('#050403',18,13,16,3);f('#7a8a74',18,17,16,27);f('#9aa894',20,18,12,8);f('#5a6a4a',18,34,16,10);f('#a8b8a0',18,30,16,2);f('#a8b8a0',18,36,16,1);f('#8a9a84',20,14,12,3)}),
+  /* the fen → back to the caves: a tunnel into a mossy bank */
+  mossbank:mk(52,40,f=>{f('#050403',1,10,50,30);f('#050403',8,4,36,8);f('#2a2a1e',2,11,48,29);f('#3a3a26',9,5,34,8);f('#2e4a22',9,4,34,3);f('#3a5a2a',12,3,10,2);f('#3a5a2a',30,3,9,2);
+    f('#2e4a22',2,11,6,6);f('#2e4a22',44,12,6,5);for(const[a,b]of[[8,18],[40,20],[12,30],[38,32]])f('#4a4a40',a,b,4,3);f('#050403',17,16,18,24);f('#050403',19,13,14,3);f('#0a0806',18,17,16,23);
+    f('#4a3424',15,15,2,25);f('#4a3424',35,15,2,25);f('#4a3424',15,14,22,2);f('#1a1612',19,18,2,22)}),
+  /* the fen → the plains: wooden steps up the bank, daylight at the top */
+  stepsup:mk(40,48,f=>{f('#050403',4,0,32,48);f('#1a2414',5,1,30,47);f('#c8d8a0',12,0,16,4);for(let k=0;k<11;k++){const y=4+k*4,w=14+k,x0=20-(w>>1);f('#050403',x0-1,y,w+2,4);f('#6a4a2a',x0,y+1,w,2);f('#8a6a3a',x0,y+1,w,1)}
+    f('#3a2a1a',6,10,2,38);f('#3a2a1a',32,10,2,38);f('#5a4028',6,10,28,1)}),
+  /* the plains → back to the fen: steps cut down into the bank, mist below */
+  stepsdown:mk(40,40,f=>{f('#050403',2,0,36,40);f('#3a2a18',3,1,34,39);f('#4a3a22',3,1,34,3);for(let k=0;k<8;k++){const y=6+k*4,w=26-k*2,x0=20-(w>>1);f('#050403',x0-1,y,w+2,4);f('#5a4028',x0,y+1,w,2);f('#7a5a34',x0,y+1,w,1)}
+    f('#6a7a6a',10,34,20,6);f('#8a9a8a',12,35,16,2);f('#2a2a1e',3,1,4,39);f('#2a2a1e',33,1,4,39)})};
+function wayKind(ex){if(!ex)return null;if(LV.pocket&&ex===LV.pocket.exit)return['cavemouth','tunnelout','stepsup'][AR.i]||null;if(ex===LV.back)return[null,'daylight','mossbank','stepsdown'][AR.i]||null;return null}
+
+/* ================= THINGS TO EAT =================
+   Each area has its own: berries in the woods (any bush), moonmilk on the cave walls, the great mushrooms of the fen, poppies in the fields.
+   Each has its own odds of doing you good, making you ill, or something stranger, lasting a while out in the world. */
+Object.assign(STATUS,{
+  halluc:{n:'Seeing things',i:'eye',pal:{a:'#c88ae8',b:'#5a2a7a',r:'#e8c85a'},bad:1,tip:'Colours swim, and things that are not there move at the edges of sight.'},
+  rev:{n:'Muddled',i:'swirl',pal:{a:'#c8a0e8'},bad:1,tip:'Your feet do the opposite of what you tell them.'},
+  dizzy:{n:'Dizzy',i:'star',pal:{a:'#e8d36a'},bad:1,tip:'The ground sways, and you drift as you walk.'},
+  drowsy:{n:'Drowsy',i:'down',pal:{a:'#8a9ac8'},bad:1,tip:'Heavy-limbed. You walk slowly and the edges of sight go dark.'},
+  quick:{n:'Quickened',i:'up',pal:{a:'#e8d36a',b:'#fff4c0'},tip:'You walk faster.'},
+  sight:{n:'Darksight',i:'eye',pal:{a:'#e8f0ff',b:'#5a7aa8',r:'#8ac8ff'},tip:'The dark draws back. You can see further.'}});
+const fxSpeed=()=>!P.fx?1:(P.fx.drowsy>0?.6:1)*(P.fx.quick>0?1.35:1);
+function giveFx(k,s){P.fx=P.fx||{};P.fx[k]=Math.max(P.fx[k]||0,s);if(typeof updHud==='function')updHud()}
+let PHANT=[],phT=0;
+function fxTick(dt){if(!P.fx)return;let ch=false;for(const k in P.fx)if(P.fx[k]>0){const was=P.fx[k];P.fx[k]-=dt;if((was|0)!==(P.fx[k]|0))ch=true;if(P.fx[k]<=0){delete P.fx[k];ch=true;if(k==='halluc'){cv.style.filter='';PHANT=[]}}}
+  if(P.fx.halluc>0){phT-=dt;if(phT<=0&&PHANT.length<4){phT=1.2+Math.random()*2;const ks=Object.keys(SPR).filter(k=>KINDS[k]&&!KINDS[k].boss&&SPR[k][0]),k=pick(ks),side=Math.random()<.5?-1:1;
+      PHANT.push({k,x:P.x+side*(W/2-20-Math.random()*30),y:P.y+(Math.random()-.5)*H*.6,vx:-side*(6+Math.random()*10),t:0,life:2.5+Math.random()*2})}
+    for(const p of PHANT){p.t+=dt;p.x+=p.vx*dt}PHANT=PHANT.filter(p=>p.t<p.life)}
+  if(ch&&typeof updHud==='function')updHud()}
+function drawFx(){if(!P.fx){if(cv.style.filter)cv.style.filter='';return}
+  if(P.fx.halluc>0){cv.style.filter=`hue-rotate(${Math.round(worldTime*35)%360}deg) saturate(1.7)`;
+    for(const p of PHANT){const im=SPR[p.k][0],a=Math.min(1,p.t/.6,(p.life-p.t)/.6)*.55;ctx.globalAlpha=Math.max(0,a);ctx.drawImage(im,Math.round(p.x-im.width/2-cam.x),Math.round(p.y-im.height-cam.y+Math.sin(p.t*3)*2))}ctx.globalAlpha=1}
+  else if(cv.style.filter)cv.style.filter='';
+  if(P.fx.drowsy>0){const a=Math.min(.5,P.fx.drowsy/10)*(.8+Math.sin(worldTime*1.3)*.2),g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.2,W/2,H/2,Math.max(W,H)*.6);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,10,${a})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
+  if(P.fx.dizzy>0){ctx.fillStyle=`rgba(255,240,200,${.04+Math.sin(worldTime*2.1)*.03})`;ctx.fillRect(0,0,W,H)}}
+/* pick one outcome by weight; each is [weight, text, what it does] */
+function eatRoll(intro,outs){let s=0;for(const o of outs)s+=o[0];let x=Math.random()*s,o=outs[0];for(const q of outs){if((x-=q[0])<0){o=q;break}}SFX.eat&&SFX.eat();const extra=o[2]?o[2]():'';notice([intro,o[1],extra].filter(Boolean).join(' ').replace(/\s+/g,' ').trim())}
+const healBy=n=>{const h=Math.min(n,P.max-P.hp);P.hp+=h;return h?`+${h} HP.`:''},hurtBy=n=>{const d=Math.min(n,P.hp-1);P.hp-=d;return d?`−${d} HP.`:''},poisonMe=t=>{P.st.poison=Math.max(P.st.poison||0,t);return'You are poisoned.'};
+function eatBerries(p){if(p.bad)eatRoll('You eat the berries.',[[4,'They are bitter and your stomach turns.',()=>hurtBy(6)],[3,'They are bitter.',()=>poisonMe(3)],[2,'Your head spins.',()=>{giveFx('dizzy',35);return'You are Dizzy.'}]]);
+  else eatRoll('You eat the berries.',[[7,'They are sweet.',()=>healBy(10)],[2,'They are sweet, and you feel lighter on your feet.',()=>{giveFx('quick',45);return[healBy(5),'You are Quickened.'].filter(Boolean).join(' ')}]])}
+function eatShroom(p){p.st=1;eatRoll('You break off a piece of the cap and eat it. It tastes of earth.',[
+  [5,'It settles well.',()=>healBy(12)],[6,'Then the cramps start.',()=>poisonMe(4)],[4,'The colours start to move.',()=>{giveFx('halluc',60);return'You are Seeing things.'}],
+  [3,'Left and right swap places in your head.',()=>{giveFx('rev',40);return'You are Muddled.'}],[2,'The ground tilts.',()=>{giveFx('dizzy',40);return'You are Dizzy.'}]])}
+function eatMoonmilk(p){p.st=1;eatRoll('You scoop up a fingerful of moonmilk. The miners ate it for luck. It tastes of chalk.',[
+  [5,'You feel steadier.',()=>{const m=Math.min(4,P.mmax-P.mp);P.mp+=m;return[healBy(8),m?`+${m} MP.`:''].filter(Boolean).join(' ')}],[4,'Your eyes sting, then the dark seems thinner.',()=>{giveFx('sight',90);return'You have Darksight.'}],
+  [3,'You feel very tired.',()=>{giveFx('drowsy',40);return'You are Drowsy.'}],[2,'It sits badly.',()=>poisonMe(3)]])}
+function eatPoppy(p){p.st=1;eatRoll('You chew a poppy head. It is bitter and milky.',[
+  [4,'Your aches fade.',()=>healBy(14)],[4,'A warm heaviness comes over you.',()=>{giveFx('drowsy',45);return[healBy(4),'You are Drowsy.'].filter(Boolean).join(' ')}],
+  [2,'The sky goes strange colours.',()=>{giveFx('halluc',40);return'You are Seeing things.'}],[3,'Nothing happens.',null]])}
+/* moonmilk: soft white deposits on cave walls; poppies: a patch of red in the fields */
+const MOONMILK_IMG=mk(16,14,f=>{f('#050403',1,2,14,12);f('#2a2824',2,3,12,10);for(const[a,b,w]of[[3,4,6],[8,6,5],[4,9,7]]){f('#e8e4d8',a,b,w,3);f('#c8c4b8',a,b+2,w,1);f('#ffffff',a+1,b,2,1)}});
+const POPPY_IMG=mk(18,12,f=>{for(const[a,b]of[[2,4],[7,2],[12,5],[5,7],[11,8],[15,3]]){f('#3a6a2a',a+1,b+2,1,4);f('#c82020',a,b,3,3);f('#e84a3a',a,b,2,1);f('#1a0a0a',a+1,b+1,1,1)}});
+Object.assign(NEWP,{
+  moonmilk:{u:p=>p.st?0:2,use:async p=>eatMoonmilk(p),draw:(p,bx,by)=>{if(p.st)ctx.globalAlpha=.4;ctx.drawImage(MOONMILK_IMG,Math.round(bx-8),Math.round(by-13));ctx.globalAlpha=1}},
+  poppies:{u:p=>p.st?0:2,use:async p=>eatPoppy(p),flat:(p,x,y)=>{if(p.st)ctx.globalAlpha=.45;ctx.drawImage(POPPY_IMG,x-9,y-6);ctx.globalAlpha=1}}});
+NEWP.bigshroom.u=p=>p.st?0:2;NEWP.bigshroom.use=async p=>eatShroom(p);
+{const d0=NEWP.bigshroom.draw;NEWP.bigshroom.draw=(p,bx,by)=>{if(p.st)ctx.globalAlpha=.55;d0(p,bx,by);ctx.globalAlpha=1}}
+
 /* ================= HUD / TOAST ================= */
 let toastTimer=null;
 function toast(t,ms,warn){notice(t)}
@@ -4774,8 +4988,8 @@ function updHud(){
   $('#hlv').textContent=P.lv;$('#hgold').textContent=P.gold;$('#hxp').style.width=(P.xp/nextXp(P.lv)*100)+'%';$('#hxpn').textContent=`${P.xp}/${nextXp(P.lv)}`;$('#bdot').style.display=P.pts>0?'block':'none';$('#sdot').style.display=P.apts>0?'block':'none';
   if(!(hudFrame++%20)){$('#hlvrow').dataset.tip=`<b>Level ${P.lv}</b><span class='r'>${P.xp} / ${nextXp(P.lv)} XP</span><span class='fx'>${nextXp(P.lv)-P.xp} XP to level ${P.lv+1}.</span>`;{const pc=Math.max(0,Math.min(100,Math.round((1-P.xp/nextXp(P.lv))*100)));$('#hlvt').dataset.tip=`<b>Level ${P.lv}</b><span class='fx'>${pc}% left until level ${P.lv+1}.</span>`}$('#hhead').dataset.tip=pTip(true);
     if(typeof KNW!=='undefined'&&KNW){const hx=$('#headc').getContext('2d');hx.imageSmoothingEnabled=false;hx.clearRect(0,0,16,20);hx.drawImage(KNW.down[0],-KPAD+2,-KPAD+2)}}
-  const key=[P.blessed,EV.blood>0,EV.fog>0,P.regen,JSON.stringify(P.st)].join();if(key!==hudKey){hudKey=key;let h='';
-    if(P.blessed)h+=iconHTML('blessed',0,`<span class='r'>${P.blessed} fight${P.blessed>1?'s':''} left</span>`);if(EV.blood>0)h+=iconHTML('bloodmoon');if(EV.fog>0)h+=iconHTML('fog');for(const k of['poison','bleed','burn','blind','wither'])if(P.st[k])h+=iconHTML(k,P.st[k]);$('#hbuffs').innerHTML=iconRow(h.match(/<img [\s\S]*?">(?=<img |$)/g)||[])}}
+  const key=[P.blessed,EV.blood>0,EV.fog>0,P.regen,JSON.stringify(P.st),P.fx?Object.keys(P.fx).map(k=>k+Math.ceil(P.fx[k]/5)).join():''].join();if(key!==hudKey){hudKey=key;let h='';
+    if(P.blessed)h+=iconHTML('blessed',0,`<span class='r'>${P.blessed} fight${P.blessed>1?'s':''} left</span>`);if(EV.blood>0)h+=iconHTML('bloodmoon');if(EV.fog>0)h+=iconHTML('fog');for(const k of['poison','bleed','burn','blind','wither'])if(P.st[k])h+=iconHTML(k,P.st[k]);if(P.fx)for(const k in P.fx)if(P.fx[k]>0&&STATUS[k])h+=iconHTML(k,0,`<span class='r'>${Math.ceil(P.fx[k])}s</span>`);$('#hbuffs').innerHTML=iconRow(h.match(/<img [\s\S]*?">(?=<img |$)/g)||[])}}
 
 /* ================= TOOLTIPS ================= */
 const tipEl=$('#tip');let tipTimer=null,tipSuppress=false,tipOwner=null;
@@ -4809,7 +5023,7 @@ let dlgPrev=null;
 let dlgKeep=false,dlgLastScroll=0;
 /* menus have no Leave/Back button: the ✕ in the corner (or Esc) does that, and backs out of nested menus all the way */
 /* menus (the main menu, fires, the anvil, Mortimer's counter, travel prompts) don't write to the world log; things you do out in the world do */
-const DLG_NOLOG=/^(The Old Road|Quit without saving\?|Record|Respec|Anvil|A campfire|A cold firepit|The way on|The way back|Mortimer)$/;
+const DLG_NOLOG=/^(The Old Road|Quit without saving\?|Statistics|Respec|Anvil|A campfire|A cold firepit|The way on|The way back|Mortimer)$/;
 const DLG_CANCEL=/^(leave|back|stay|keep playing|resume|close|done|cancel|not now|never mind)$/i;let dlgAbort=false;
 function dialog(title,body,choices,raw,tips){return new Promise(res=>{let ci=-1;choices.forEach((c,i)=>{if(DLG_CANCEL.test(String(c).trim()))ci=i});
   if(dlgAbort&&ci>=0){res(ci);return}dlgAbort=false;
@@ -4944,7 +5158,7 @@ function mapNav(){const el=$('#mnav');const L=mapLevel(),ar=L.area,ais=AREAS.map
 function mapGo(ai,zi){const ar=AREAS[ai];if(zi==null){zi=ar.zones.findIndex(seenAny);if(zi<0)return}MV=ar===AR&&ar.zones[zi]===LV?null:{ai,zi};mapPick=null;renderPack()}
 function drawMap(){const L=mapLevel(),c=$('#mapc'),MW2=L.MW,MH2=L.MH,sc=MW2>60?3:8,M=L.map,ix=(a,b)=>b*MW2+a;c.width=MW2*sc;c.height=MH2*sc;c.style.aspectRatio=MW2+' / '+MH2;c._L=L;c._sc=sc;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
   const ty=L.type,pl=ty==='plains',cave=ty==='cave',ins=L.kind==='interior';
-  const COL={[G]:cave?'#3a3632':pl?'#4a8a3a':ty==='swamp'?'#232a14':'#1d2a1f',[ROAD]:pl?'#a08a60':'#6a5a3e',[OAK]:pl?'#2a5a26':'#0e1a12',[PINE]:'#0b1611',[DEAD]:'#3a342d',[BOG]:'#1f4a3a',[MUD]:'#5a4c2c',[ROCKT]:'#4a4a44',[FIRE]:cave?'#3a3632':'#1d2a1f',[STN]:'#b83a2a',[BRIDGE]:'#7a5a34',[ENTT]:pl?'#2a5a26':'#0e1a12',[CHEST]:ins?'#6a4a2e':cave?'#3a3632':'#1d2a1f',[PROPT]:cave?'#3a3632':'#1d2a1f',[WATER]:'#1a3a5a',[WALL]:'#1a1818',[BARRIER]:'#6a3a8a',[EXIT]:'#e8e0c8',[GATE]:'#c9a24b',[FLOOR]:'#5a4632',[IWALL]:'#1a1410',[BLDG]:'#5a3a2a',[DOOR]:'#c9a24b',[IDOOR]:'#c9a24b',[BRAMBLE]:'#4a2a1a',[CRACK]:'#5a5048',[DEEP]:'#0c1a2a',[DEADFALL]:'#5a3e22',[BOARDS]:'#7a5a34',[MIRE]:'#3a3a1c',[SPOIL]:'#6a5236',[IRONG]:'#5a6068'};
+  const COL={[CASTLE]:'#8a867a',[FLAG]:'#6a6458',[G]:cave?'#3a3632':pl?'#4a8a3a':ty==='swamp'?'#232a14':'#1d2a1f',[ROAD]:pl?'#a08a60':'#6a5a3e',[OAK]:pl?'#2a5a26':'#0e1a12',[PINE]:'#0b1611',[DEAD]:'#3a342d',[BOG]:'#1f4a3a',[MUD]:'#5a4c2c',[ROCKT]:'#4a4a44',[FIRE]:cave?'#3a3632':'#1d2a1f',[STN]:'#b83a2a',[BRIDGE]:'#7a5a34',[ENTT]:pl?'#2a5a26':'#0e1a12',[CHEST]:ins?'#6a4a2e':cave?'#3a3632':'#1d2a1f',[PROPT]:cave?'#3a3632':'#1d2a1f',[WATER]:'#1a3a5a',[WALL]:'#1a1818',[BARRIER]:'#6a3a8a',[EXIT]:'#e8e0c8',[GATE]:'#c9a24b',[FLOOR]:'#5a4632',[IWALL]:'#1a1410',[BLDG]:'#5a3a2a',[DOOR]:'#c9a24b',[IDOOR]:'#c9a24b',[BRAMBLE]:'#4a2a1a',[CRACK]:'#5a5048',[DEEP]:'#0c1a2a',[DEADFALL]:'#5a3e22',[BOARDS]:'#7a5a34',[MIRE]:'#3a3a1c',[SPOIL]:'#6a5236',[IRONG]:'#5a6068'};
   const SN=L.seen,sn=(a,b)=>SN[ix(a,b)];
   for(let y=0;y<MH2;y++)for(let tx=0;tx<MW2;tx++){if(!sn(tx,y))continue;x.fillStyle=COL[M[ix(tx,y)]]||COL[G];x.fillRect(tx*sc,y*sc,sc,sc)}
   const ex=L.pocket&&L.pocket.exit;if(ex&&sn(ex.x,ex.y)){x.fillStyle='#e8e0c8';x.font='bold 11px monospace';x.fillText('▲',ex.x*sc-3,ex.y*sc+6)}
@@ -5224,7 +5438,7 @@ async function loadGame(){const o=saveInfo();if(!o)return false;let d;try{d=desG
   bindLevel(d.LV);useLevelMobs(LV);particles=[];floats=[];B=null;TR=null;
   recalc();buildKnight();hudKey='';return true}
 /* also usable mid-battle: saving there keeps your health and items as they are now, and the fight is waiting where you left it */
-async function gameMenu(){if(mode!=='world'&&!(mode==='battle'&&B&&B.turnDone&&!B.busy))return;const c=await dialog('The Old Road',`${MODES[diffKey()].n} · ${AR.def.name}${mode==='battle'?' · in a fight':''}`,['Resume','Bestiary','Record','Save and quit','Quit without saving']);
+async function gameMenu(){if(mode!=='world'&&!(mode==='battle'&&B&&B.turnDone&&!B.busy))return;const c=await dialog('The Old Road',`${MODES[diffKey()].n} · ${AR.def.name}${mode==='battle'?' · in a fight':''}`,['Resume','Bestiary','Statistics','Save and quit','Quit without saving']);
   if(c===1){openBestiary();return}
   if(c===2){openRecord();return}
   if(c===3){if(await saveGame()){mode='title';location.reload()}else notice('The save failed. Your browser may be out of storage space.')}
