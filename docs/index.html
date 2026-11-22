@@ -370,7 +370,7 @@ let SIM_OUTER=false;
       info.textContent=d[1]?`${w}×${h}${s!==1?' · shown at '+Math.round(s*100)+'%':''}`:'';f.focus()}
     addEventListener('resize',apply);apply()})})();
 </script>
-<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.42.1</div>
+<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.42.2</div>
   <div id="view">
     <canvas id="cv"></canvas>
     <div id="hud">
@@ -7161,7 +7161,9 @@ function tradeAct(){const X=TRADE;
 /* ================= PLAYTEST TOOLS =================
    Hidden. Open with the ` key, or tap the Lv box in the HUD 5 times quickly (that also shows a 🛠 button). */
 const DEV={god:false,ohk:false,mana:false,peace:false,noclip:false,spd:1,on:false};
-try{DEV.on=localStorage.getItem('hm_dev')==='1'}catch(e){}
+/* DEV_DEFAULT 'on': the 🛠 button shows from the start, for playtesters. Set it to 'off' for a release, and the tools go back to being hidden behind the taps / ` key */
+const DEV_DEFAULT='on';
+DEV.on=DEV_DEFAULT==='on';try{if(localStorage.getItem('hm_dev')==='1')DEV.on=true}catch(e){}
 function devKillBoss(){const Z=getZone(AR,LASTZ);AR.bossDead=true;for(const s of Z.spawns)if(s.boss){s.perm=1;s.dead=0}
   for(let i=0;i<Z.map.length;i++)if(Z.map[i]===BARRIER)Z.map[i]=G;if(LV===Z){mobs=mobs.filter(m=>!m.boss);LV.mobs=mobs;bossMob=null}Z.chunks&&Z.chunks.clear&&Z.chunks.clear()}
 /* dev: fill every gear slot with one item of the chosen rarity and tier (replaces what you wear) */
