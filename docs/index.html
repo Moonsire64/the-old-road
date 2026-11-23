@@ -370,7 +370,7 @@ let SIM_OUTER=false;
       info.textContent=d[1]?`${w}×${h}${s!==1?' · shown at '+Math.round(s*100)+'%':''}`:'';f.focus()}
     addEventListener('resize',apply);apply()})})();
 </script>
-<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.42.2</div>
+<div id="app"><div id="bst"><div class="lh">Bestiary <span id="bstc"></span><b id="bstx">✕</b></div><div id="bstb"><div id="bgrid"></div><div id="bdet"></div></div></div><div id="stw"><div class="lh">Stats <span>hold or hover a stat for where it comes from</span><b id="stwx">✕</b></div><div id="stwb" class="stgrid"></div></div><div id="clog"><div class="lh">Log <span>hold or hover an entry to see why</span><b id="clogx">✕</b></div><div id="clogt"><b data-t="out">Outgoing</b><b data-t="in">Incoming</b><b data-t="ord">Resolve order</b><b data-t="world">World</b></div><div id="clogl"></div></div><div id="ver">0.47.0</div>
   <div id="view">
     <canvas id="cv"></canvas>
     <div id="hud">
@@ -1120,6 +1120,7 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
     for(const p of props.slice())if(p.ty<FH+1){props.splice(props.indexOf(p),1);delete PROPAT[id(p.tx,p.ty)]}
     for(let y=0;y<FH;y++)for(let x=1;x<MW-1;x++){const q=id(x,y);if(map[q]===FIRE)continue;map[q]=WALL;reservedT[q]=1}
     for(let y=FH-2;y<=FH+1;y++)for(let x=gx-1;x<=gx+1;x++){map[id(x,y)]=ROAD;reservedT[id(x,y)]=2}
+    for(let y=FH;y<=FH+7;y++)for(let x=gx-5;x<=gx+5;x++){const q=id(x,y);if(map[q]===WATER||map[q]===BRIDGE)map[q]=G}   /* open ground before the gate, not a frozen pond */
     L.facade={h:FH,gx};const w=L.ways.find(q=>q.role==='exit');if(w){w.at=FH-2;w.facade=1}}
   if(L.fort&&L.pocket){const F=L.fort,pk=L.pocket;for(let y=F.y0;y<=F.y1;y++)for(let x=F.x0;x<=F.x1;x++){const u=(x-F.Cx)*F.b[0]+(y-F.Cy)*F.b[1],v=(x-F.Cx)*F.l[0]+(y-F.Cy)*F.l[1];
       if(!(u>=F.HU-17&&u<=F.HU-6&&Math.abs(v)<=11))continue;if(x>=pk.x0&&x<=pk.x1&&y>=pk.y0&&y<=pk.y1)continue;const q=id(x,y);if(map[q]===BARRIER||map[q]===FIRE||map[q]===EXIT)continue;
@@ -1229,6 +1230,13 @@ function genZone(ar,zi){const def=ar.def,ty=def.type,L=newLevel(ar,'zone',zi,ZS,
     if(!ok){for(let i=snap.length-1;i>=0;i--)map[snap[i][0]]=snap[i][1]}else g.tiles=tiles}
    REACH=L.reach=flood(true)}
   /* no chest walled in by a prop: if every side of one is blocked, the plain prop next to it is taken away */
+  /* whatever was put down after the castle wall went up (puzzle chests, secrets, event spots): nothing may sit in or against it */
+  if(L.facade){const FH=L.facade.h,gx=L.facade.gx;
+    for(const q of Object.keys(CHESTS).map(Number)){const o=CHESTS[q],y=(q/MW)|0,x=q%MW;if(y>FH)continue;let to=null;
+      for(let d=0;d<60&&!to;d++)for(const dx of[0,d,-d]){const xx=x+dx,yy=FH+3+(d%6),qq=id(xx,yy);if(xx>1&&xx<MW-2&&map[qq]===G&&!PROPAT[qq]&&!CHESTS[qq]){to={x:xx,y:yy};break}}
+      delete CHESTS[q];map[q]=WALL;if(to){if(o){o.x=to.x;o.y=to.y}map[id(to.x,to.y)]=CHEST;CHESTS[id(to.x,to.y)]=o}else{const i=chests.indexOf(o);if(i>=0)chests.splice(i,1)}}
+    for(const p of props.slice())if(p.ty<=FH){props.splice(props.indexOf(p),1);delete PROPAT[id(p.tx,p.ty)]}
+    for(let y=0;y<FH;y++)for(let x=1;x<MW-1;x++){if(Math.abs(x-gx)<=1&&y>=FH-2)continue;const q=id(x,y);if(map[q]!==FIRE)map[q]=WALL}}
   for(const q in CHESTS){const x=q%MW,y=(q/MW)|0,nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([a,b])=>id(x+a,y+b));if(nb.some(n=>!BLOCK[map[n]]))continue;
     let done=0;for(const n of nb){const p=PROPAT[n];if(p&&!p.t.startsWith('pz')&&p.t!=='sluice'){props.splice(props.indexOf(p),1);delete PROPAT[n];map[n]=G;done=1;break}}
     /* boxed in by a puzzle piece and water or trees: open the plain side instead */
@@ -1329,7 +1337,8 @@ function genInterior(ar,key,d){const B=BTYPES[d.bt],L=newLevel(ar,'interior',key
 
 /* ---------- props ---------- */
 function placeProps(r,ty){
-  const tiles=[];for(let y=3;y<MH-3;y++)for(let x=3;x<MW-3;x++)if(map[id(x,y)]===G&&REACH[id(x,y)]&&!inPocket(x,y))tiles.push({x,y});
+  const inFort=(x,y)=>{const F=LV.fort;return!!F&&x>=F.x0-1&&x<=F.x1+1&&y>=F.y0-1&&y<=F.y1+1};const inFoy=(x,y)=>{const F=LV.foyer;return!!F&&x>=F.x0-2&&x<=F.x1+2&&y>=F.y0-4};   /* nor anything in the castle's entrance */   /* the fort is laid out on its own: no clutter or events dropped in it */
+  const tiles=[];for(let y=3;y<MH-3;y++)for(let x=3;x<MW-3;x++)if(map[id(x,y)]===G&&REACH[id(x,y)]&&!inPocket(x,y)&&!inFort(x,y)&&!inFoy(x,y))tiles.push({x,y});
   tiles.sort(()=>r()-.5);
   const ar=LV.arena,st=LV.start||LV.fpt;
   const busy=(x,y,d=3)=>props.some(p=>Math.abs(p.tx-x)<d&&Math.abs(p.ty-y)<d&&Math.hypot(p.tx-x,p.ty-y)<d)||chests.some(c=>Math.hypot(c.x-x,c.y-y)<3)||fires.some(f=>Math.hypot(f.x-x,f.y-y)<3)||(ar&&Math.hypot(x-ar.x,y-ar.y)<ar.r+2)||nearType(x,y,[DOOR,GATE,BLDG],1)||!!(LV.waysAt&&LV.waysAt.some(w=>Math.hypot(x-w.x,y-w.y)<8));
@@ -2524,7 +2533,7 @@ function pickKind(tx,ty){const p=LV.prog+(Math.random()-.5)*.25,type=LV.type;
   const tbl=(typeof MAPDEF!=='undefined'&&LV.kind==='zone'&&mapDef().mobs)||SPAWN_TBL[type](p);let tot=0;for(const k in tbl)tot+=tbl[k];let r=Math.random()*tot;for(const k in tbl){r-=tbl[k];if(r<=0)return k==='pack'?AREA_PACK[type]:k}return AREA_PACK[type]}
 const SAFE_R=15;
 function genSpawns(){const type=LV.type,ar=LV.arena,occ=[];let bats=0;
-  for(let i=0;i<SPAWN_N;i++){for(let tries=0;tries<80;tries++){const tx=3+((Math.random()*(MW-6))|0),ty=3+((Math.random()*(MH-6))|0),t=map[id(tx,ty)];
+  for(let i=0;i<(type==='castle'?46:SPAWN_N);i++){for(let tries=0;tries<80;tries++){const tx=3+((Math.random()*(MW-6))|0),ty=3+((Math.random()*(MH-6))|0),t=map[id(tx,ty)];
     if(BLOCK[t]||!REACH[id(tx,ty)]||inPocket(tx,ty)||t===DOOR||t===GATE||t===EXIT)continue;if(LV.foyer&&tx>=LV.foyer.x0-2&&tx<=LV.foyer.x1+2&&ty>=LV.foyer.y0-4)continue;   /* the castle's entrance hall is empty */if(ar&&Math.hypot(tx-ar.x,ty-ar.y)<ar.r+3)continue;
     /* nothing spawns within SAFE_R tiles of anywhere you can appear (start, fires, gates, the way back): more than the widest sight range, so you never wake up in a fight */
     if((START&&Math.hypot(START.x-tx,START.y-ty)<SAFE_R)||fires.some(f=>Math.hypot(f.x-tx,f.y-ty)<SAFE_R)||LV.gates.some(g=>Math.hypot(g.inner.x-tx,g.inner.y-ty)<SAFE_R)||(LV.back&&Math.hypot(LV.back.x-tx,LV.back.y-ty)<SAFE_R))continue;
@@ -2614,7 +2623,7 @@ function goFire(ai,zi,fi,title){const ar=getArea(ai),newArea=ar!==AR;
     setTimeout(()=>banner(newArea?ar.def.name:L.name,!newArea),500)},title||ar.def.name,newArea?null:ar.def.zones[zi])}
 /* walking through a way between areas puts you just inside the matching way on the other side, so you can turn round and walk straight back */
 function goWay(ai,zi,back){const ar=getArea(ai),newArea=ar!==AR;if(newArea){EV.fog=0;if(typeof leaves!=='undefined')leaves.length=0}   /* a new area: whatever weather the last one had stays behind */
-  loadInto(()=>{const L=getZone(ar,zi);bindLevel(L);let p,ed;if(back){p=L.pocket&&L.pocket.exit||L.exitPt;ed=L.exitEdge;if(L.facade)p={x:L.facade.gx,y:L.facade.h+2}}   /* back out of the castle: far enough down the slope to see its front */else{p=L.back;ed=L.backEdge}
+  loadInto(()=>{const L=getZone(ar,zi);bindLevel(L);let p,ed;if(back){p=L.pocket&&L.pocket.exit||L.exitPt;ed=L.exitEdge;if(L.facade)p={x:L.facade.gx,y:L.facade.h-3}}   /* back out of the castle: far enough down the slope to see its front */else{p=L.back;ed=L.backEdge}
     const d={N:[0,1],S:[0,-1],W:[1,0],E:[-1,0]}[ed];enterLevel(L,(p.x+d[0]*5)*T+8,(p.y+d[1]*5)*T+12);P.face=INFACE[ed]||P.face;if(!back&&L.foyer&&!P.foyerSeen&&typeof FOYER_GO!=='undefined')FOYER_GO=1;
     if(!back){const f=fires.find(q=>q.start)||fires[0];if(f){f.lit=true;ar.lastFire={zi,fi:fires.indexOf(f)}}}exitAway=true;
     setTimeout(()=>banner(newArea?ar.def.name:L.name,!newArea),500)},ar.def.name,null)}
@@ -3118,11 +3127,12 @@ function updProps(dt){
 function updCam(){const ww=MW*T,hh=MH*T,fo=CINE&&CINE.focus;/* follow the player's ROUNDED position, so the knight's on-screen spot never flips a pixel back and forth as the camera and he round differently (the walking jitter) */
   /* the camera moves in half-pixel steps (the canvas is 2x, so still whole real pixels): cam.x/y stay whole numbers for all the drawing code, and the
      leftover half (cam.fx/fy) is applied once as a shift of the whole world layer. Everything that moves is drawn on the same half-pixel grid. */
-  const px=R2(fo?fo.x:P.x),py=R2(fo?fo.y:P.y),cx=ww<=W?Math.round((ww-W)/2):R2(clamp(px-W/2,0,ww-W)),cy=hh<=H?Math.round((hh-H)/2):R2(clamp(py-8-H/2,0,hh-H));
+  const px=R2(fo?fo.x:P.x),py=R2(fo?fo.y:P.y),cx=ww<=W?Math.round((ww-W)/2):R2(clamp(px-W/2,0,ww-W)),lift=LV&&LV.facade&&!fo?(u=>u*u*(3-2*u))(clamp(((LV.facade.h+26)*T-py)/(25*T+12),0,1))*H*.324:0,   /* eases in over a long stretch of the climb, so the view rises with you rather than all at once */
+    cy=hh<=H?Math.round((hh-H)/2):R2(clamp(py-8-H/2-lift,LV&&LV.facade?-FACADE_UP:0,hh-H));   /* below the castle the view may rise past the top of the map, to take in the whole front */
   cam.x=Math.floor(cx);cam.y=Math.floor(cy);cam.fx=cx-cam.x;cam.fy=cy-cam.y}
 function passable(px,py){const tx=Math.floor(px/T),ty=Math.floor(py/T);if(tx<0||ty<0||tx>=MW||ty>=MH)return false;const t=map[ty*MW+tx];return!BLOCK[t]&&t!==DOOR&&t!==IDOOR}
 function boxFree(x,y){return passable(x-4,y-4)&&passable(x+3,y-4)&&passable(x-4,y-1)&&passable(x+3,y-1)}
-function moveBody(o,dx,dy){if(o===P&&DEV.noclip){o.x=clamp(o.x+dx,T,(MW-1)*T);o.y=clamp(o.y+dy,T,(MH-1)*T);return}if(dx&&boxFree(o.x+dx,o.y))o.x+=dx;if(dy&&boxFree(o.x,o.y+dy))o.y+=dy}
+function moveBody(o,dx,dy){if(o===P&&DEV.noclip){o.x=clamp(o.x+dx,T,(MW-1)*T);o.y=clamp(o.y+dy,T,(MH-1)*T);return}const lo=o===P&&typeof ovOK==='function'?ovOK:()=>true;if(dx&&boxFree(o.x+dx,o.y)&&lo(o.x+dx,o.y))o.x+=dx;if(dy&&boxFree(o.x,o.y+dy)&&lo(o.x,o.y+dy))o.y+=dy}
 const AGGRO_MUL=1.1,LEASH=1.7,DOUBT=1.8,CHASE=1.1;  /* CHASE stretches every distance used for losing interest, not for noticing */
 /* ---- PATHFINDING (0.16): one distance map from the player, rebuilt whenever you step onto a new tile. A chasing creature that can't see
    a straight way to you walks downhill on it, so it goes round lakes and through the gap in a wall instead of pressing its face into it ---- */
@@ -3252,7 +3262,7 @@ function drawWorld(){
     else if(o.k==='bld')drawBld(o.b);
     else if(o.k==='crit')drawCritter(o.p);
     else if(o.k==='sheep'){const p=o.p,dr=()=>ctx.drawImage(p.flip?PS.sheepF:PS.sheep,Math.round(p.x-4-cam.x),Math.round(p.y-3-cam.y-(p.fl>0&&Math.sin(time*30)>0?1:0)));if(p.flop>0){ctx.save();const cy=Math.round(p.y-cam.y)+1;ctx.translate(0,cy);ctx.scale(1,-1);ctx.translate(0,-cy);dr();ctx.restore()}else dr()}
-    else if(o.k==='mob')drawMob(o.m);else if(o.k==='player'){if(typeof drawDog==='function')drawDog();drawPlayer();drawHook()}}
+    else if(o.k==='mob')elevDraw(o.m.x,o.m.y,null,()=>drawMob(o.m));else if(o.k==='player'){if(typeof drawDog==='function')drawDog();elevDraw(P.x,P.y,true,drawPlayer);drawHook()}}
   drawWayRoofs();if(typeof drawKeepOver==='function')drawKeepOver();if(MORT)drawMort();
   for(const m of mobs)if(KINDS[m.kind].fly&&vis(m.x,m.y,40))drawMob(m);
   for(const c of crows){if(c.st===2)continue;const x=Math.round(c.x-cam.x),y=Math.round(c.y-cam.y);if(x<-10||x>W+10||y<-10||y>H+10)continue;ctx.fillStyle='#050505';
@@ -3324,8 +3334,7 @@ function eyePos(m){const sp=SPR[m.vk]||SPR[m.kind];if(!sp)return null;const img=
 /* mobs are placed on a half-pixel grid (the canvas is drawn at 2x, so that is still a whole real pixel): with the camera stepping a whole pixel at a time, whole-pixel mobs stutter against it */
 const R2=v=>Math.round(v*KK)/KK;  /* sub-pixel steps the canvas can show exactly (see resize) */
 /* things on a floor below you are further off: drawn fainter */
-function drawMob(m){let a=1;if(typeof heroElev==='function'&&KEEPSK[LV.type]&&LV.krooms){const d=heroElev()-(keepElevGrid()[id(Math.floor(m.x/T),Math.floor((m.y-2)/T))]||0);if(d>.4)a=1-Math.min(.55,d*.35)}
-  if(a<1){ctx.globalAlpha=a;drawMob0(m);ctx.globalAlpha=1}else drawMob0(m)}
+function drawMob(m){drawMob0(m)}   /* no fading by height: it read as the lighting jumping as you went up and down */
 function drawMob0(m){const k=KINDS[m.kind];
   /* a hunter carries a dark red stain on the ground under it, pulsing: you always know which one it is */
   if(m.hunter){const pz=.5+.5*Math.sin(time*4);ctx.fillStyle=`rgba(150,10,10,${.25+.2*pz})`;ctx.beginPath();ctx.ellipse(R2(m.x-cam.x),R2(m.y-cam.y),9+pz*2,4,0,0,7);ctx.fill()}
@@ -3383,6 +3392,7 @@ function drawFog(){const type=LV.type,a=BT(type)==='plains'?.03:BT(type)==='swam
   for(const f of FOG){const span=W+f.r*2,spanY=H+f.r*2,x=(((f.x+time*f.v-cam.x*f.par)%span)+span)%span-f.r,y=(((f.y-cam.y*f.par)%spanY)+spanY)%spanY-f.r;
   const g=ctx.createRadialGradient(x,y,0,x,y,f.r);g.addColorStop(0,`rgba(${col},${a})`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(x-f.r,y-f.r,f.r*2,f.r*2)}}
 const TINT={woods:'rgba(4,12,8,.36)',cave:'rgba(3,4,14,.36)',swamp:'rgba(14,20,4,.34)',plains:'rgba(255,236,190,.05)',inside:'rgba(8,5,2,.32)'},VIGA={woods:.7,cave:.85,swamp:.7,plains:.3,inside:.8};
+let LIGHTS=[];
 function drawLight(){const type=LV.kind==='interior'?'inside':LV.type,vis=(x,y,m)=>x>-m&&x<W+m&&y>-m&&y<H+m;
   ctx.fillStyle=TINT[type];ctx.fillRect(0,0,W,H);
   const g=[],fl=Math.sin(time*11)*1.5+Math.sin(time*7.3)*1.2;
@@ -3398,7 +3408,7 @@ function drawLight(){const type=LV.kind==='interior'?'inside':LV.type,vis=(x,y,m
   for(const s of glowShrooms){const x=s.x-cam.x,y=s.y-cam.y;if(vis(x,y,12))g.push([x,y,9,s.cr?'rgba(110,190,240,.2)':'rgba(60,220,180,.2)'])}
   if(BT(type)!=='plains')g.push([P.x-cam.x,P.y-10-cam.y,50,'rgba(255,190,90,.08)']);
   for(let tx=Math.floor(cam.x/T);tx<=Math.floor((cam.x+W)/T);tx++)for(let ty=Math.floor(cam.y/T);ty<=Math.floor((cam.y+H)/T)+1;ty++)if(tAt(tx,ty)===STN)g.push([tx*T+8-cam.x,ty*T+4-cam.y,10,'rgba(200,30,20,.18)']);
-  ctx.globalCompositeOperation='lighter';
+  LIGHTS=g;ctx.globalCompositeOperation='lighter';
   for(const[x,y,r,c]of g){const gr=ctx.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,c);gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.fillRect(x-r,y-r,r*2,r*2)}
   for(const f of fireflies){const x=f.x+Math.sin(time*f.sp+f.ph)*14-cam.x,y=f.y+Math.cos(time*f.sp*1.3+f.ph)*10-cam.y,a=(Math.sin(time*2.3+f.ph*3)+1)/2;if(a<.3||!vis(x,y,4))continue;
     if(BT(type)==='plains'){ctx.globalCompositeOperation='source-over';const w=Math.sin(time*18+f.ph)>0;ctx.fillStyle=['#f0d84a','#f4f4f4','#f08ac8','#8ac8f0'][(f.ph*10|0)%4];ctx.fillRect(x|0,y|0,1,1);ctx.fillRect((x|0)+(w?-1:1),y|0,1,1);ctx.fillRect((x|0)+(w?1:-1),(y|0),1,1);ctx.globalCompositeOperation='lighter'}
@@ -3416,7 +3426,7 @@ function drawLight(){const type=LV.kind==='interior'?'inside':LV.type,vis=(x,y,m
   if(BT(LV.type)==='swamp'&&LV.kind==='zone'){ctx.strokeStyle='rgba(190,205,215,.13)';ctx.lineWidth=.5;ctx.beginPath();const n=Math.round(W*H/1800);for(let i=0;i<n;i++){const sp=150+(i*37%60),x=((i*97.3+time*sp*.3)%(W+20))-10,y=((i*53.7+time*sp)%(H+20))-10;ctx.moveTo(x,y);ctx.lineTo(x-1,y-4)}ctx.stroke()}
   /* choking fog: grey closes in to a few tiles round you (and things out there can't see you well either) */
   if(EV.fog>0&&LV.kind==='zone'){const a=Math.min(1,EV.fog/8),x=P.x-cam.x,y=P.y-10-cam.y,gr=ctx.createRadialGradient(x,y,22,x,y,95);gr.addColorStop(0,'rgba(120,130,120,0)');gr.addColorStop(1,`rgba(120,130,120,${.8*a})`);ctx.fillStyle=gr;ctx.fillRect(0,0,W,H)}
-  drawFx();ctx.globalAlpha=P.fx&&P.fx.sight>0?.3:1;ctx.drawImage(getVig(),0,0);ctx.globalAlpha=1}
+  drawFx();ctx.globalAlpha=P.fx&&P.fx.sight>0?.3:1;ctx.drawImage(getVig(),0,0,W,H);ctx.globalAlpha=1}
 /* the ways between areas: a rock face (or an earth bank) along the edge of the map with the way cut through it.
    A cave mouth, a tunnel out to daylight or fen light, a boardwalk up into the fields, steps down into the fen mist */
 const WAYCOL={cave:'4,3,3',day:'255,244,206',fenlight:'190,210,186',fields:'232,240,196',mist:'14,20,16'};
@@ -3507,6 +3517,12 @@ const RIDDLES=[{q:"The more you take, the more you leave behind.",a:['Footsteps'
  {q:"I have cities but no houses, forests but no trees, rivers but no water.",a:['A map','A dream','A grave']},
  {q:"The one who makes me sells me. The one who buys me never uses me. The one who uses me never knows.",a:['A coffin','A sword','A crown']},
  {q:"What can run but never walks, has a mouth but never talks?",a:['A river','A wolf','A rumour']}];
+
+/* in the castle, whatever stands higher up is that much nearer your eye: drawn a touch larger, growing as it climbs a stair */
+function elevDraw(x,y,hero,fn){if(!LV||LV.kind!=='zone'||!LV.krooms||typeof keepElevGrid!=='function'){fn();return}
+  const g=keepElevGrid();if(LV.kelevMin==null){let m=9;for(let i=0;i<g.length;i++)if(map[i]!==WALL&&g[i]<m)m=g[i];LV.kelevMin=m}
+  const e=hero?heroElev():g[Math.floor((y-2)/T)*MW+Math.floor(x/T)]||0,k=1+clamp(e-LV.kelevMin,0,3)*.045;if(k<1.004){fn();return}
+  const sx=x-cam.x,sy=y-cam.y;ctx.save();ctx.translate(sx,sy);ctx.scale(k,k);ctx.translate(-sx,-sy);fn();ctx.restore()}
 /* ================= LIFE IN THE WORLD =================
    Animals that wander about, what the sword does to everything you swing it at, torches on the cave walls,
    and the trigger at the ways between areas. */
@@ -5035,7 +5051,9 @@ function buildPuzzles(r,ty){if(LV.kind!=='zone')return;LV.rooms=[];const kinds=p
   for(const k of kinds){let ok=false;for(let t=0;t<40&&!ok;t++)ok=k==='blocks'?pzBlocks(r,ty):k==='lamps'?pzLamps(r,ty):pzRace(r,ty)}}
 const PZ_BAD=t=>t===BLDG||t===DOOR||t===GATE||t===EXIT||t===FIRE||t===CHEST||t===PROPT||t===BARRIER||t===ENTT||t===BRIDGE||t===IDOOR||isGateT(t);
 function pzFree(x0,y0,w,h,pad){for(let y=y0-pad;y<y0+h+pad;y++)for(let x=x0-pad;x<x0+w+pad;x++){if(x<3||y<3||x>=MW-3||y>=MH-3)return false;const q=id(x,y);
-    if(PZ_BAD(map[q])||PROPAT[q]||CHESTS[q]||inPocket(x,y)||map[q]===VOID||map[q]===STAIR||map[q]===LEDGE)return false}
+    if(PZ_BAD(map[q])||PROPAT[q]||CHESTS[q]||inPocket(x,y)||map[q]===VOID||map[q]===STAIR||map[q]===LEDGE)return false
+    if(KEEPSK[LV.type]&&map[q]!==G)return false}   /* in the castle and dungeon a puzzle only goes on open floor, never over a wall, stair or drop */
+  {const F=LV.fort;if(F&&x0+w+pad>=F.x0-3&&x0-pad<=F.x1+3&&y0+h+pad>=F.y0-3&&y0-pad<=F.y1+3)return false}   /* never on top of Harrow's fort */
   {const F=LV.foyer;if(F&&x0+w+pad>=F.x0-2&&x0-pad<=F.x1+2&&y0+h+pad>=F.y0-4&&y0-pad<=F.vy1+2)return false}   /* never in the castle's entrance */
   if(fires.some(f=>f.x>=x0-4&&f.x<x0+w+4&&f.y>=y0-4&&f.y<y0+h+4))return false;
   if(LV.gates.some(g=>Math.hypot(g.inner.x-(x0+w/2),g.inner.y-(y0+h/2))<w+6))return false;
@@ -5610,7 +5628,15 @@ function drawFx(){if(!P.fx)P.fx={};
   else if(cv.style.filter)cv.style.filter='';
   if(P.fx.drowsy>0){const a=Math.min(.5,P.fx.drowsy/10)*(.8+Math.sin(worldTime*1.3)*.2),g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.2,W/2,H/2,Math.max(W,H)*.6);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,10,${a})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
   /* the dungeon is always this dark: your eyes never get used to it */
-  const dg=LV&&LV.type==='dungeon'&&LV.kind==='zone',dimA=(P.fx.dim>0?Math.min(.88,.5+P.fx.dim/60)*(dg?.95:1):0)||(dg?.32:0);   /* the dungeon on its own: a slight closing-in; with the debuff on top, very dark */
+  const dg=LV&&LV.type==='dungeon'&&LV.kind==='zone';
+  /* down in the dungeon it is black past the edge of what you can see: a small ring of sight round you, and only the lights themselves showing beyond it */
+  if(dg){if(dk.width!==W||dk.height!==H){dk.width=W;dk.height=H}const d=dctx,px=P.x-cam.x,py=P.y-10-cam.y,R0=Math.min(W,H)*(P.fx.dim>0?.26:.42),fl=Math.sin(time*9)*2;
+    d.globalCompositeOperation='source-over';d.fillStyle='#000';d.fillRect(0,0,W,H);d.globalCompositeOperation='destination-out';
+    const hole=(x,y,r,a)=>{const g=d.createRadialGradient(x,y,r*.25,x,y,r);g.addColorStop(0,`rgba(0,0,0,${a})`);g.addColorStop(1,'rgba(0,0,0,0)');d.fillStyle=g;d.fillRect(x-r,y-r,r*2,r*2)};
+    hole(px,py,R0+fl,1);for(const[x,y,r]of LIGHTS||[])if(r>20)hole(x,y,r*1.5+fl,.92);
+    for(const p of props)if(p.t==='k_stand'||p.t==='k_font'||p.t==='brazier'&&p.lit>0)hole(p.x-cam.x,p.y-20-cam.y,60+fl,.9);
+    d.globalCompositeOperation='source-over';ctx.drawImage(dk,0,0,W,H)}
+  const dimA=!dg&&P.fx.dim>0?Math.min(.88,.5+P.fx.dim/60):0;   /* the dungeon on its own: a slight closing-in; with the debuff on top, very dark */
   if(dimA>0){const a=dimA,soft=a<.5,g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*(soft?.3:.08),W/2,H/2,Math.min(W,H)*(soft?.75:.48));g.addColorStop(0,`rgba(0,0,0,${soft?0:.25})`);g.addColorStop(1,`rgba(0,0,0,${a})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
   if(P.fx.dizzy>0){ctx.fillStyle=`rgba(255,240,200,${.04+Math.sin(worldTime*2.1)*.03})`;ctx.fillRect(0,0,W,H)}}
 /* pick one outcome by weight; each is [weight, text, what it does] */
@@ -6174,7 +6200,7 @@ Object.assign(SPAWN_TBL,{
 {const M=[
   {raiders:3,slinger:3,ram:3,eagle:2,greywolves:2},{raiders:3,slinger:2,ram:3,eagle:3,screelurker:2,beaconwight:1},{slinger:3,ram:2,eagle:2,screelurker:3,beaconwight:3},
   {pilgrims:3,pilgrim:2,stalker:3,rimewraith:2,frozenmonk:2},{stalker:3,rimewraith:3,frozenmonk:3,snowtroll:2,pilgrim:2},{snowtroll:3,stalker:3,rimewraith:3,frozenmonk:2,pilgrims:2},
-  {watch:3,castleguard:3,crossbowman:3,kennelmaster:2,gargoyle:1},{watch:2,castleguard:3,courtier:3,crossbowman:2,gargoyle:2,kennelmaster:2},{courtier:3,castleguard:3,gargoyle:3,crossbowman:2,kennelmaster:2},
+  {watch:8,castleguard:3,crossbowman:3,kennelmaster:2,gargoyle:1},{watch:7,castleguard:3,courtier:3,crossbowman:2,gargoyle:2,kennelmaster:2},{watch:6,courtier:3,castleguard:3,gargoyle:3,crossbowman:2,kennelmaster:2},
   {prisoners:3,prisoner:3,gaoler:3,ratking:2},{prisoners:2,gaoler:3,ratking:3,oubthing:3,questioner:1},{gaoler:3,questioner:3,oubthing:3,ratking:2,prisoner:2}];
   M.forEach((m,i)=>{if(MAPDEF[12+i])MAPDEF[12+i].mobs=m})}
 
@@ -6233,10 +6259,12 @@ function keepLayout(r,zi,kind){const castle=kind==='castle',L=LV;for(let i=0;i<M
   /* what each room is */
   const area=R=>(R.x1-R.x0+1)*(R.y1-R.y0+1),byArea=leaves.filter(R=>!R.kind).sort((a,b)=>area(b)-area(a));
   const special=castle?['yard','greathall','throne'][zi]:['guardroom','cells','torture'][zi];
-  const POOL=castle?['chapel','library','armoury','kitchen','bedchamber','gallery','stairhall','guardroom','storeroom','solar','gallery','stairhall','hall','bedchamber','library','armoury']
+  const POOL=castle?['chapel','library','armoury','kitchen','bedchamber','gallery','stairhall','guardroom','ballroom','courtyard','solar','gallery','stairhall','hall','ballroom','courtyard','library','armoury']
     :['cells','cells','torture','oubliette','guardroom','ossuary','cistern','stairwell','storeroom','cells','drain','cells','oubliette','ossuary'];
   const pool=POOL.slice().sort(()=>r()-.5);let pi=0;
   byArea.forEach((R,i)=>{const w=R.x1-R.x0+1,h=R.y1-R.y0+1;R.special=i===0;R.kind=i===0?special:Math.min(w,h)<6?'passage':pool[pi++%pool.length]});
+  /* a couple of ballrooms and courtyards to a floor, no more: the rest go back to ordinary rooms */
+  {const cap={ballroom:2,courtyard:2},seen={};for(const R of byArea){if(!cap[R.kind])continue;seen[R.kind]=(seen[R.kind]||0)+1;const ww=R.x1-R.x0+1,hh=R.y1-R.y0+1;if(seen[R.kind]>cap[R.kind]||ww<9||hh<9)R.kind=r()<.5?'hall':'gallery'}}
   if(castle&&zi===0)byArea.slice(1,3).forEach(R=>{if(R.kind!=='passage')R.kind=r()<.5?'stables':'guardroom'});   /* the outer ward: the yard, and the guard and stable rooms off it */
   L.krooms=leaves;L.kdecor=[];L.kdoors=doors;
   /* the castle is built on the hill it stands on: whole wings sit higher than others. Each room takes the floor level of its wing
@@ -6286,7 +6314,12 @@ function keepConnect(L,pts,fireSpots,r){const rooms=L.krooms;
 const KEEPSK={castle:1,dungeon:1},KRG=new WeakMap();
 function keepGrid(){let g=KRG.get(LV);if(!g){g=new Int16Array(MW*MH).fill(-1);(LV.krooms||[]).forEach((R,i)=>{for(let y=R.y0;y<=R.y1;y++)for(let x=R.x0;x<=R.x1;x++)g[y*MW+x]=i});KRG.set(LV,g)}return g}
 const isWallK=t=>t===WALL;
-function keepFloor(kind,px,py,lx,lyy,n,patch,dg){let c;
+function keepFloor(kind,px,py,lx,lyy,n,patch,dg,R){let c;
+  /* a courtyard open to the sky: grass, with flagged paths round the edge and crossing in the middle */
+  if(kind==='courtyard'&&R){const tx=px>>4,ty=py>>4,cx=(R.x0+R.x1)>>1,cy=(R.y0+R.y1)>>1,path=tx<=R.x0||tx>=R.x1||ty<=R.y0||ty>=R.y1||tx===cx||tx===cx+1||ty===cy||ty===cy+1;
+    if(!path){const v=hash(px>>1,py>>1),b=patch*.3;return v>.92?[70+b*40,96+b*30,40]:[44+n*14+b*20,70+n*18+b*24,30+n*8]}return keepFloor('yard',px,py,lx,lyy,n,patch,dg)}
+  if(kind==='ballroom'){const dk=((px>>4)+(py>>4))&1,j=(px&15)===0||(py&15)===0,v=.94+hash(px>>4,py>>4)*.1;c=dk?[40*v+n*4,36*v+n*4,40*v+n*4]:[196*v+n*8,188*v+n*8,172*v+n*6];if(j)c=[c[0]*.75,c[1]*.75,c[2]*.75];
+    if(!dk&&((px+py)&15)===3)c=[c[0]*1.06,c[1]*1.06,c[2]*1.06];return c}
   if(dg){const sz=8,sx=(px/sz)|0,sy=(py/sz)|0,ox=px%sz,oy=py%sz,v=.78+hash(sx*7+3,sy*13+1)*.34,j=ox===0||oy===0;
     c=j?[12,13,15]:[34*v+n*6,36*v+n*6,41*v+n*7];if(patch>.66&&!j)c=[c[0]*.9,c[1]*1.02,c[2]*1.14];if(n<.05)c=[c[0]*.6,c[1]*.6,c[2]*.6];
     if(kind==='cells'&&hash(px*3,py)<.18)c=[86+n*30,72+n*20,34+n*10];if(kind==='ossuary'&&n>.985)c=[150,144,124];if(kind==='torture'&&patch>.7&&n>.6)c=[60,16,14];return c}
@@ -6305,7 +6338,8 @@ function keepPix(t,tx,ty,lx,lyy,n,patch,sk){const dg=sk==='dungeon',px=tx*16+lx,
       if(fy<3){if(fy===2)return dg?[30,32,36]:[88,82,76];return dg?[9,10,12]:[30,28,32]}
       if(fy>=F-2)return dg?[12,13,15]:[34,30,28];
       /* the masonry changes from one stretch of wall to the next: dressed blocks, rough rubble, brick */
-      const sty=hash((tx>>3)*7+3,(ty>>2)*11+5),lit0=1.06-(fy-3)/(F-5)*.5;
+      /* one stone for the whole building, as a real castle is built: dressed ashlar above, rough rubble in the dungeon */
+      const sty=dg?.2:.1,lit0=1.06-(fy-3)/(F-5)*.5;
       if(!dg&&sty<.25){const row=((fy-3)/6)|0,j=((fy-3)%6)===0||((px+(row%2)*8)&15)===0,v=.86+hash((px+(row%2)*8)>>4,ty*6+row)*.2;return j?[52,48,44]:[150*v*lit0+n*6,142*v*lit0+n*6,128*v*lit0+n*5]}
       if(!dg&&sty<.45){const row=((fy-3)/3)|0,j=((fy-3)%3)===0||((px+(row%2)*3)%6)===0,v=.8+hash((px+(row%2)*3)/6|0,ty*9+row)*.35;return j?[56,46,40]:[128*v*lit0+n*8,74*v*lit0+n*5,56*v*lit0+n*4]}
       if(sty<(dg?.35:.62)){const cx2=(px+hash(ty,(fy/5)|0)*7)/7|0,rr=((fy-3)/5)|0,j=((fy-3+(cx2%2)*2)%5)===0||((px+hash(rr,ty)*7|0)%7)===0,v=.7+hash(cx2,ty*7+rr)*.45;
@@ -6320,9 +6354,15 @@ function keepPix(t,tx,ty,lx,lyy,n,patch,sk){const dg=sk==='dungeon',px=tx*16+lx,
       return j?[48,44,42]:[124*v*lit+n*8,116*v*lit+n*7,104*v*lit+n*6]}
     /* the top of the wall: dark, with a lit rim wherever it drops to a floor */
     if(ab&&lyy<2)return dg?[34,36,40]:[96,90,84];if(lf&&lx<1)return dg?[26,28,32]:[70,66,62];if(rt&&lx>14)return dg?[20,21,24]:[54,50,48];
-    return dg?[8+n*4,9+n*4,11+n*5]:[26+patch*6+n*6,24+patch*5+n*6,28+patch*6+n*6]}
-  const g=keepGrid(),ri=g[ty*MW+tx],R=ri>=0?LV.krooms[ri]:null,ev=keepElevGrid()[ty*MW+tx],tone=clamp(dg?1+ev*.1:.8+ev*.12,.55,1.25),up=!dg&&R&&R.gal&&R.gal.ledge-R.y0===3&&ty<=R.gal.ledge,kind=up?'library':R?R.kind:'',floorAt=()=>keepFloor(kind,px,py,lx,lyy,n,patch,dg);   /* the galleries are boarded */
+    /* the wall-walk: big capstones laid in courses, each a slightly different stone, their joints dark, lit along the north edge of each */
+    {const row=py>>3,off=(row&1)*6,bx=(px+off)/12|0,jx=((px+off)%12)===0,jy=(py&7)===0,v=.82+hash(bx*3+1,row*7+(dg?5:0))*.3,hl=(py&7)===1&&!jx;
+     if(jx||jy)return dg?[6,6,8]:[30,28,30];const base=dg?[30,30,36]:[84,78,74];let k=v*(hl?1.22:1)*(.92+n*.12);if(hash(bx,row)<.06)k*=.8;
+     const c=[base[0]*k,base[1]*k,base[2]*k];if(dg&&n>.86)return[c[0]*.8,c[1]*1.15,c[2]*.85];return c}}
+  const g=keepGrid(),ri=g[ty*MW+tx],R=ri>=0?LV.krooms[ri]:null,ev=keepElevGrid()[ty*MW+tx],tone=clamp(dg?1+ev*.12:.72+ev*.2,.5,1.3),kind=R?R.kind:'',floorAt=()=>keepFloor(kind,px,py,lx,lyy,n,patch,dg,R);   /* a raised part of a room has the same floor as the rest of it */
   let c=null;
+  /* the side edge of a raised walk down a hall: its own floor, a balustrade along the edge, and the drop's face on the hall side */
+  if(t===LEDGE&&LV.ovm&&LV.ovl[ty*MW+tx]&&(LV.ovm[ty*MW+tx+1]===2||LV.ovm[ty*MW+tx-1]===2)){const hr=LV.ovm[ty*MW+tx+1]===2,d=hr?15-lx:lx;let c0=keepFloor(kind,px,py,lx,lyy,n,patch,dg,R);c0=[c0[0]*tone,c0[1]*tone,c0[2]*tone];
+    if(d<=3)return d===0?[34,30,28]:d===1?[70,64,58]:d===2?[110,102,92]:[0,0,0].map((_,i)=>c0[i]*.7);if(d<=6){if(d===5&&(py&3)<2)return[226,218,200];if(d===6)return[200,192,176];if(d===4)return[0,0,0].map((_,i)=>c0[i]*.6)}return c0}
   if(t===LEDGE){if(lyy<2)return dg?[60,62,68]:[150,140,124];if(lyy>=14)return dg?[10,10,12]:[30,26,24];const row=(lyy-2)>>2,j=((lyy-2)&3)===0||((px+(row%2)*4)&7)===0,v=.85+hash((px+(row%2)*4)>>3,ty*5+row)*.25,lit=1.1-(lyy-2)/12*.45;
     return j?[44,40,36]:[140*v*lit+n*8,128*v*lit+n*7,108*v*lit+n*6]}
   if(t===VOID)return[8,8,10];
@@ -6331,7 +6371,10 @@ function keepPix(t,tx,ty,lx,lyy,n,patch,sk){const dg=sk==='dungeon',px=tx*16+lx,
     return e?(dg?[60,62,68]:[150,142,128]):j?(dg?[22,24,28]:[70,66,60]):(dg?[48+n*8,50+n*8,56+n*8]:[128+n*10,120+n*9,108+n*8])}}
   if(t===DAIS){c=floorAt().map(v=>Math.min(255,v*1.14));const bl=A(0,1);if(bl!==DAIS&&bl!==STAIR&&lyy>=12)c=lyy===12?(dg?[70,72,78]:[176,168,152]):(dg?[30,32,36]:[92,86,78]);
     if(A(-1,0)!==DAIS&&A(-1,0)!==STAIR&&lx<1||A(1,0)!==DAIS&&A(1,0)!==STAIR&&lx>14)c=[c[0]*.6,c[1]*.6,c[2]*.6]}
-  else if(t===STAIR){const ew=isWallK(A(0,-1))&&isWallK(A(0,1)),s=(ew?lx:lyy)&3;c=s===0?(dg?[78,80,86]:[162,156,142]):s===1?(dg?[56,58,64]:[128,122,110]):(dg?[22,24,28]:[72,68,62]);if(LV.kcarp&&LV.kcarp.has(ty*MW+tx)&&lx>=2&&lx<=13){const ed=lx===2||lx===13,gd=lx===3||lx===12;c=ed?[60,8,12]:gd?[184,146,64]:s===0?[160,34,38]:s===1?[124,22,28]:[70,10,16]}if(!ew&&((A(-1,0)!==STAIR&&lx<2)||(A(1,0)!==STAIR&&lx>13)))c=dg?[30,30,34]:[64,58,52]}
+  else if(t===STAIR){/* each step: a lit tread and a dark riser below it, the flight lighter towards the top, and a stone side wall wherever the flight is open */
+    const ew=isWallK(A(0,-1))&&isWallK(A(0,1)),u=ew?lx:lyy,s=u&3,up=ew?0:1-lyy/16,lit=.78+up*.3;
+    c=s===0?(dg?[20,21,24]:[52,48,44]):s===1?(dg?[52,54,60]:[122,116,104]):s===2?(dg?[72,74,80]:[158,150,136]):(dg?[96,98,106]:[204,196,180]);c=[c[0]*lit,c[1]*lit,c[2]*lit];   /* each step's face is towards you: in shadow where it meets the step above, catching the light at its edge */
+    if(!ew){const L2=A(-1,0)!==STAIR,R2=A(1,0)!==STAIR;if(L2&&lx<3)c=lx===2?(dg?[30,30,34]:[70,64,60]):(dg?[60,62,68]:[150,142,128]);if(R2&&lx>12)c=lx===13?(dg?[30,30,34]:[70,64,60]):(dg?[18,18,22]:[46,42,40])}if(LV.kcarp&&LV.kcarp.has(ty*MW+tx)&&lx>=2&&lx<=13){const ed=lx===2||lx===13,gd=lx===3||lx===12;c=ed?[60,8,12]:gd?[184,146,64]:s===0?[160,34,38]:s===1?[124,22,28]:[70,10,16]}if(!ew&&((A(-1,0)!==STAIR&&lx<2)||(A(1,0)!==STAIR&&lx>13)))c=dg?[30,30,34]:[64,58,52]}
   else if(t===CARPET){const ed=(d,b)=>A(d[0],d[1])!==CARPET&&b;const e=ed([-1,0],lx<2)||ed([1,0],lx>13)||ed([0,-1],lyy<2)||ed([0,1],lyy>13),e2=ed([-1,0],lx===2)||ed([1,0],lx===13)||ed([0,-1],lyy===2)||ed([0,1],lyy===13);
     c=e?[70,10,14]:e2?[184,146,64]:[(118+patch*12+n*10),20+n*6,26+n*6];if(!e&&!e2&&((lx+lyy)%8===0||(lx-lyy+16)%8===0)&&(lx>3&&lx<12))c=[150,34,36]}
   else if(t===BARS){c=floorAt();c=[c[0]*.55,c[1]*.55,c[2]*.55];const b=lx%4;if(b===1)c=[54,56,62];else if(b===2)c=[96,98,106];if(lyy===2||lyy===3||lyy===10)c=lyy===2?[100,102,110]:[46,48,54];if(lyy>=14)c=[10,10,12]}
@@ -6342,7 +6385,11 @@ function keepPix(t,tx,ty,lx,lyy,n,patch,sk){const dg=sk==='dungeon',px=tx*16+lx,
       c=s===0?(dg?[78,80,86]:[162,156,142]):s===1?(dg?[56,58,64]:[128,122,110]):(dg?[22,24,28]:[72,68,62]);c=[c[0]*k2,c[1]*k2,c[2]*k2]}
     else c=floorAt()}
   if(!c)return null;
-  if(t!==WALL&&t!==LEDGE)c=[Math.min(255,c[0]*tone),Math.min(255,c[1]*tone),Math.min(255,c[2]*tone)];
+  if(t!==WALL&&t!==LEDGE){let k=tone;
+    /* the drop below a raised floor throws a shadow out across the floor at its foot, so the step up reads as a real height */
+    if(t!==VOID&&t!==OPEN){const ab=map[(ty-1)*MW+tx];if(ab===LEDGE)k*=1-.5*Math.max(0,1-lyy/12);else if(ab===STAIR&&t!==STAIR)k*=1-.15*Math.max(0,1-lyy/6);
+      const lf=map[ty*MW+tx-1];if(lf===LEDGE||(lf===WALL&&ev<keepElevGrid()[ty*MW+tx-1]-.5))k*=1-.3*Math.max(0,1-lx/6)}
+    c=[Math.min(255,c[0]*k),Math.min(255,c[1]*k),Math.min(255,c[2]*k)]}
   /* shadow under the walls: the face throws it on the floor in front, and a little off the sides */
   if((isWallK(A(0,-1))||A(0,-1)===LEDGE)&&lyy<5){const k=.45+lyy*.11;c=[c[0]*k,c[1]*k,c[2]*k]}if(isWallK(A(-1,0))&&lx<2)c=[c[0]*.72,c[1]*.72,c[2]*.72];if(isWallK(A(1,0))&&lx>13)c=[c[0]*.82,c[1]*.82,c[2]*.82];
   return c}
@@ -6407,7 +6454,7 @@ Object.assign(NEWP,{
   k_bed:kdraw((p,bx,by)=>{const x=Math.round(bx-8),y=by-26;kshadow(bx,by,9);ctx.fillStyle='#050505';ctx.fillRect(x,y,16,26);ctx.fillStyle='#4a2a14';ctx.fillRect(x+1,y+1,14,4);ctx.fillRect(x+1,y,2,26);ctx.fillRect(x+13,y,2,26);
     ctx.fillStyle='#5a1a2a';ctx.fillRect(x+3,y+5,10,3);ctx.fillStyle='#e8e0d0';ctx.fillRect(x+4,y+8,8,4);ctx.fillStyle='#6a1a2a';ctx.fillRect(x+3,y+12,10,11);ctx.fillStyle='#8a2a3a';ctx.fillRect(x+3,y+12,10,2)}),
   k_hearth:kdraw((p,bx,by)=>{const x=Math.round(bx-12),y=by-22;ctx.fillStyle='#050505';ctx.fillRect(x,y,24,22);ctx.fillStyle='#7a7268';ctx.fillRect(x+1,y+1,22,4);ctx.fillRect(x+1,y+1,4,20);ctx.fillRect(x+19,y+1,4,20);ctx.fillStyle='#9a9284';ctx.fillRect(x+1,y+1,22,1);
-    ctx.fillStyle='#0a0606';ctx.fillRect(x+5,y+5,14,16);const f=Math.sin(time*9+p.tx)*1.5;ctx.fillStyle='#c8401a';ctx.fillRect(x+7,y+13-f*.5,10,8);ctx.fillStyle='#f08a24';ctx.fillRect(x+8,y+15-f,8,6);ctx.fillStyle='#ffd870';ctx.fillRect(x+10,y+17-f*.6,4,4);
+    ctx.fillStyle='#0a0606';ctx.fillRect(x+5,y+5,14,16);const f=Math.sin(time*9+p.tx)*1.5,b=y+21;ctx.fillStyle='#c8401a';ctx.fillRect(x+7,b-8-f,10,8+f);ctx.fillStyle='#f08a24';ctx.fillRect(x+8,b-6-f,8,6+f);ctx.fillStyle='#ffd870';ctx.fillRect(x+10,b-4-f*.6,4,4+f*.6);
     ctx.fillStyle='#3a2414';ctx.fillRect(x+6,y+19,12,2)}),
   k_altar:kdraw((p,bx,by)=>{const x=Math.round(bx-9),y=by-14;kshadow(bx,by,10);ctx.fillStyle='#050505';ctx.fillRect(x,y,18,14);ctx.fillStyle='#a8a090';ctx.fillRect(x+1,y+1,16,4);ctx.fillStyle='#8a8276';ctx.fillRect(x+2,y+5,14,9);ctx.fillStyle='#e8e0d0';ctx.fillRect(x+1,y+3,16,2);ctx.fillStyle='#c9a24b';ctx.fillRect(x+8,y+6,2,6);ctx.fillRect(x+6,y+8,6,1);
     for(const o of[2,14]){ctx.fillStyle='#e8e0c0';ctx.fillRect(x+o,y-4,2,5);ctx.fillStyle=Math.sin(time*11+o)>0?'#ffd870':'#f08a24';ctx.fillRect(x+o,y-6,2,2)}}),
@@ -6442,15 +6489,28 @@ function keepFurnish(r){const rooms=LV.krooms;if(!rooms)return;if(typeof buildDo
   const addArch=(x,y,down)=>{if(LV.zi>=LASTZ||!LV.gates.some(g=>g.to===LV.zi+1))return;dec.push({k:'arch',x,y,down,way:1});(LV.karches=LV.karches||[]).push({x,y})};
   const setT=(x,y,t)=>{const q=id(x,y);if(map[q]===G&&!PROPAT[q]&&!CHESTS[q]&&!near(x,y,1))map[q]=t};
   {const F=rooms.find(R=>R.kind==='foyer');if(F)buildFoyer(F)}
+  /* a hall or two on each castle floor is crossed by a walkway one floor up: raised floors down both sides with a stair up to each,
+     and a bridge between them over the middle of the hall. You can cross on top, or walk underneath */
+  if(castle){let no=0;for(const R of rooms.slice().sort(()=>r()-.5)){if(no>=2)break;const w=R.x1-R.x0+1,h=R.y1-R.y0+1;
+    if(w<13||h<12||w>26||R.special||R.camp||R.round||['puzzle','foyer','vestibule','courtyard','throne','chapel','guardroom','passage'].includes(R.kind))continue;
+    let ok=true;for(let y=R.y0;y<=R.y1&&ok;y++)for(let x=R.x0;x<=R.x1;x++){const q=id(x,y);if(map[q]!==G||PROPAT[q]||CHESTS[q]||fires.some(f=>f.x===x&&f.y===y)){ok=false;break}}if(!ok)continue;
+    if(buildOverpass(R))no++}}
+  /* here and there the floor has given way, down to the floor below. Walk into the hole and you go down with it */
+  LV.fallTo=castle?(LV.zi>0?LV.zi-1:null):(LV.zi<2?LV.zi+1:null);
+  if(LV.fallTo!=null){let nh=0;for(const R of rooms.slice().sort(()=>r()-.5)){if(nh>=3)break;if(R.ov||R.camp||R.special||R.kind==='puzzle'||R.round||R.kind==='throne'||R.kind==='foyer'||R.kind==='courtyard'||R.voids||R.gal&&R.gal.stairs.length>4)continue;
+    const y0=(R.yc||R.y0)+2,x0=R.x0+2,x1=R.x1-2,y1=R.y1-2,hw=2+((r()*2)|0),hh=2;if(x1-x0+1<hw+2||y1-y0+1<hh+2)continue;
+    const hx=x0+1+((r()*(x1-x0-hw))|0),hy=y0+1+((r()*(y1-y0-hh))|0);let ok=true;
+    for(let y=hy-2;y<=hy+hh+1;y++)for(let x=hx-2;x<=hx+hw+1;x++){const q=id(x,y),t=map[q];if(t===STAIR||t===LEDGE||t===DOOR)ok=false;if(y>=hy-1&&y<=hy+hh&&x>=hx-1&&x<=hx+hw&&(t!==G||PROPAT[q]||CHESTS[q]))ok=false}if(!ok)continue;
+    for(let y=hy;y<hy+hh;y++)for(let x=hx;x<hx+hw;x++)map[id(x,y)]=PIT;R.holes=[{x0:hx,y0:hy,x1:hx+hw-1,y1:hy+hh-1,hole:1}];nh++}}
   /* first the raised terraces: in the castle most rooms of any size have their back third or half one floor up, with stairs down from it */
-  for(const R of rooms){if(R.kind==='foyer'||R.kind==='vestibule'||R.kind==='puzzle'||R.kind==='passage'||R.round||R.kind==='dogcell'||R.cells)continue;if(!castle&&r()>.55)continue;   /* the dungeon too: walkways along the walls above sunken floors */const k0=R.kind,cx0=(R.x0+R.x1)>>1,W0=R.x1-R.x0+1,H0=R.y1-R.y0+1;
+  for(const R of rooms){if(R.ov||R.kind==='foyer'||R.kind==='vestibule'||R.kind==='courtyard'||R.kind==='puzzle'||R.kind==='passage'||R.round||R.kind==='dogcell'||R.cells)continue;if(!castle&&r()>.55)continue;   /* the dungeon too: walkways along the walls above sunken floors */const k0=R.kind,cx0=(R.x0+R.x1)>>1,W0=R.x1-R.x0+1,H0=R.y1-R.y0+1;
     const kt=[];for(let y=R.y0-1;y<=R.y1+1;y++)for(let x=R.x0-1;x<=R.x1+1;x++)kt.push(map[id(x,y)]);let g=null;
     if(k0==='throne'||k0==='stairhall')g=makeGallery(R,[[cx0-2,cx0+2]],3);else if(k0==='chapel')g=makeGallery(R,[[cx0-1,cx0+1]],3);
     else if(k0==='greathall')g=makeGallery(R,W0>=16?[[R.x0+1,R.x0+3],[R.x1-3,R.x1-1]]:[[R.x1-3,R.x1-1]],3);
-    else if(H0>=9&&W0>=7&&r()<.85){const d=clamp(3+((r()*(H0-9))|0),3,H0-8),sx=R.x0+1+((r()*(W0-5))|0);g=makeGallery(R,W0>=16&&r()<.5?[[R.x0+1,R.x0+3],[R.x1-3,R.x1-1]]:[[sx,sx+2]],d)}
+    else if(H0>=8&&W0>=7&&r()<.95){const d=clamp(3+((r()*(H0-9))|0),3,H0-8),sx=R.x0+1+((r()*(W0-5))|0);g=makeGallery(R,W0>=16&&r()<.5?[[R.x0+1,R.x0+3],[R.x1-3,R.x1-1]]:[[sx,sx+2]],d)}
     if(g)R.keepT=kt}
-  {let nv=0;const want=castle?4:2,kinds=castle?['hall','gallery','greathall','stairhall','library','armoury','guardroom']:['drain','ossuary','guardroom','storeroom','torture','stairwell'];
-    for(const R of rooms.slice().sort(()=>r()-.5)){if(nv>=want)break;if(R.kind==='foyer'||R.kind==='vestibule'||R.camp||R.kind==='puzzle'||R.round||R.kind==='throne'||R.kind==='chapel'||R.x1-R.x0<9||R.y1-(R.yc||R.y0)<9)continue;
+  {let nv=0;const want=castle?10:4,kinds=castle?['hall','gallery','greathall','stairhall','library','armoury','guardroom']:['drain','ossuary','guardroom','storeroom','torture','stairwell'];
+    for(const R of rooms.slice().sort(()=>r()-.5)){if(nv>=want)break;if(R.ov||R.kind==='foyer'||R.kind==='vestibule'||R.camp||R.kind==='puzzle'||R.round||R.kind==='throne'||R.kind==='chapel'||R.kind==='courtyard'||R.x1-R.x0<8||R.y1-(R.yc||R.y0)<8)continue;
       const kt=R.keepT||[];if(!kt.length)for(let y=R.y0-1;y<=R.y1+1;y++)for(let x=R.x0-1;x<=R.x1+1;x++)kt.push(map[id(x,y)]);if(makeVoidHall(R)){R.keepT=kt;nv++}}}
   keepDoorStairs();
   for(const R of rooms){const added=[],tiles=[],bench=(x,y)=>{if(!free(x,y))return;const p=addProp('k_bench',x,y,false,{});added.push(p)},put=(t,x,y,ex)=>{if(!free(x,y))return null;const p=addProp(t,x,y,true,Object.assign({txt:KTXT[t]},ex||{}));added.push(p);return p};
@@ -6462,10 +6522,11 @@ function keepFurnish(r){const rooms=LV.krooms;if(!rooms)return;if(typeof buildDo
       if(kk==='tapestry'){if(!isFace(x+2,R.y0-1)||!faces.includes(x+1))continue;dec.push({k:kk,x,y:R.y0-1,c:pick(COL)});i++}else dec.push({k:kk,x,y:R.y0-1,c:pick(COL),down:kk==='arch'&&!castle})}};
     const pillarRows=(gap)=>{if(w<9||h<7)return;for(const px of[x0+2,x1-2])for(let y=y0+2;y<=y1-2;y+=gap)put('k_pillar',px,y)};
     const snap0=props.length;
+    if(R.ov){wallDecor(['banner','tapestry','window'],3);continue}
     if(k==='foyer'||k==='vestibule'){wallDecor(['banner','banner','tapestry'],3);
       /* a line of torches either side of you, all the way in */
       const stand=(x,y)=>{const q=id(x,y);if(map[q]===G&&!PROPAT[q]&&!CHESTS[q])addProp('k_stand',x,y,true,{})};
-      if(k==='vestibule')for(let y=R.y1-1;y>=R.y0+1;y-=3){stand(cx-4,y);stand(cx+4,y)}else{stand(cx-4,R.y1-1);stand(cx+4,R.y1-1);stand(cx-6,R.y1-1);stand(cx+6,R.y1-1)}
+      if(k==='vestibule')for(let y=R.y1-1;y>=R.y0+1;y-=3){stand(cx-4,y);stand(cx+4,y)}
       continue}
     if(R.camp){wallDecor(castle?['banner','window']:['chains','skull'],5);continue}
     if(k==='puzzle')continue;
@@ -6482,6 +6543,9 @@ function keepFurnish(r){const rooms=LV.krooms;if(!rooms)return;if(typeof buildDo
     else if(k==='armoury'){for(const x of faces)if(x>x0&&x<x1&&r()<.6)put('k_rack',x,y0);for(let x=x0+2;x<=x1-2;x+=2)put('k_armour',x,cy);put('f_anvil',x1-1,y1-1);wallDecor(['banner'],4)}
     else if(k==='kitchen'){if(faces.includes(cx))put('k_hearth',cx,y0);put('k_table',cx-1,cy,{v:1});put('k_table',cx,cy,{v:1});put('k_table',cx+1,cy,{v:1});for(const[x,y]of[[x0,y1],[x0+1,y1],[x1,y1],[x1,y1-1]])put(r()<.5?'f_barrel':'f_crate',x,y);put('f_cauldron',x0+1,y0+1)}
     else if(k==='bedchamber'||k==='solar'){put('k_bed',cx,y0);put('f_wardrobe',x1-1,y0);put('k_candles',cx-2,y0);if(w>=6&&h>=6)dec.push({k:'rug',x:cx,y:cy,w:3,h:2,c:pick(['#5a1a1a','#1a2a4a','#3a2a1a'])});wallDecor(['window','tapestry'],3)}
+    else if(k==='ballroom'){/* a ballroom: columns down both sides, chandeliers, a dais for the musicians */pillarRows(2);LV.kchand=LV.kchand||[];for(let x=x0+3;x<=x1-3;x+=Math.max(4,((w-4)/2)|0))LV.kchand.push({x:x*T+8,y:cy*T});if(faces.includes(cx)){put('k_candles',cx-1,y0);put('k_candles',cx+1,y0)}wallDecor(['tapestry','window','tapestry'],3)}
+    else if(k==='courtyard'){/* open to the sky: a fountain in the middle, trees in the corners of the grass */const fcx=(R.x0+R.x1)>>1,fcy=(R.y0+R.y1)>>1;
+      for(const[x,y]of[[x0+1,y0+1],[x1-1,y0+1],[x0+1,y1-1],[x1-1,y1-1],[fcx-3,fcy-3],[fcx+3,fcy+3]])if(r()<.8)put('k_tree',x,y);R.sky=1}
     else if(k==='gallery'||k==='hall'){pillarRows(3);for(const x of faces)if(x>x0+1&&x<x1-1&&(x-x0)%4===0&&r()<.7)put('k_statue',x,y0);if(k==='hall'||w>=12)for(let x=x0+1;x<=x1-1;x++)setT(x,cy,CARPET);wallDecor(['tapestry','banner','window'],3)}
     else if(k==='stairhall'&&h>=8&&w>=9){for(let y=y0;y<=y0+1;y++)for(let x=x0+1;x<=x1-1;x++)setT(x,y,DAIS);for(let y=y0+2;y<=y0+4;y++)for(let x=cx-2;x<=cx+2;x++)setT(x,y,STAIR);
       if(faces.includes(cx)&&faces.includes(cx-1)&&faces.includes(cx+1))addArch(cx-1,R.y0-1,false);put('k_statue',x0+1,y0);put('k_statue',x1-1,y0);wallDecor(['banner'],4)}
@@ -6505,6 +6569,9 @@ function keepFurnish(r){const rooms=LV.krooms;if(!rooms)return;if(typeof buildDo
     if((added.length||gal||well)&&reachN()<base){for(const p of added){props.splice(props.indexOf(p),1);delete PROPAT[id(p.tx,p.ty)];map[id(p.tx,p.ty)]=G}
       if(keepT.length){let i=0;for(let y=R.y0-1;y<=R.y1+1;y++)for(let x=R.x0-1;x<=R.x1+1;x++)map[id(x,y)]=keepT[i++];delete R.gal;delete R.well;delete R.voids;delete R.bridge;R.yc=R.cells?R.yc:undefined;KELEV.delete(LV)}}}
   /* tiles changed to dais, stairs or carpet can cut nothing off: they're all floor; water in cisterns has its bridge */
+  /* each courtyard's fountain, set where its paths cross; kept only if nothing is cut off by it */
+  for(const R of rooms){if(R.kind!=='courtyard')continue;const fcx=(R.x0+R.x1)>>1,fcy=(R.y0+R.y1)>>1,q=id(fcx,fcy);if(map[q]!==G||PROPAT[q])continue;const b0=reachN(),p=addProp('k_fountain',fcx,fcy,true,{});p.x+=8;p.y+=8;
+    if(reachN()<b0){props.splice(props.indexOf(p),1);delete PROPAT[q];map[q]=G}}
   if(reachN()<base)for(let i=0;i<MW*MH;i++)if(map[i]===WATER&&keepGrid()[i]>=0)map[i]=G}
 
 /* ================= HEIGHT =================
@@ -6516,7 +6583,9 @@ function keepFurnish(r){const rooms=LV.krooms;if(!rooms)return;if(typeof buildDo
 const KELEV=new WeakMap();
 /* height of every tile, in floors: each room at its wing's level, a raised terrace one higher, stairs and stepped doorways in between */
 function keepElevGrid(){let g=KELEV.get(LV);if(g)return g;g=new Float32Array(MW*MH);const rooms=LV.krooms||[];
-  for(const R of rooms){const lv=R.lv||0;for(let y=R.y0;y<=R.y1;y++)for(let x=R.x0;x<=R.x1;x++)g[id(x,y)]=lv;const G2=R.gal;if(!G2)continue;
+  for(const R of rooms){const lv=R.lv||0;for(let y=R.y0;y<=R.y1;y++)for(let x=R.x0;x<=R.x1;x++)g[id(x,y)]=lv;
+    if(R.ov){const O=R.ov;for(const T2 of O.ter)for(let y=T2.y0;y<=T2.y1;y++)for(let x=T2.x0;x<=T2.x1;x++)g[id(x,y)]=lv+1;for(const S of O.stairs)for(let y=S.y0;y<=S.y1;y++)for(let x=S.x0;x<=S.x1;x++)g[id(x,y)]=lv+(S.y1+1-y)/(S.y1-S.y0+2)}
+    const G2=R.gal;if(!G2)continue;
     for(let y=R.y0;y<=G2.ledge;y++)for(let x=R.x0;x<=R.x1;x++)g[id(x,y)]=lv+1;
     for(const S of G2.stairs)for(let y=S.y0;y<=S.y1;y++)for(let x=S.x0;x<=S.x1;x++)g[id(x,y)]=lv+(S.e!=null?S.e:(S.y1+1-y)/(S.y1-S.y0+2))}
   for(const D of LV.kdoors||[]){const n=D.th;for(let k=0;k<D.dw;k++){const a=D.vert?g[id(D.at-1,D.p+k)]:g[id(D.p+k,D.at-1)],b=D.vert?g[id(D.at+n,D.p+k)]:g[id(D.p+k,D.at+n)];
@@ -6524,6 +6593,7 @@ function keepElevGrid(){let g=KELEV.get(LV);if(g)return g;g=new Float32Array(MW*
   KELEV.set(LV,g);return g}
 /* how high you are standing: on stairs, smoothly between the tiles */
 function heroElev(){if(!KEEPSK[LV.type]||LV.kind!=='zone'||!LV.krooms)return 0;const g=keepElevGrid(),fx=P.x/T-.5,fy=(P.y-2)/T-.5,tx=Math.floor(P.x/T),ty=Math.floor((P.y-2)/T),q=id(tx,ty);
+  if(LV.ovm&&LV.ovm[q]===3)return LV.ovl[q]-10+(P.layer==='up'?1:0);   /* on the bridge, or under it */
   if(map[q]!==STAIR)return g[q]||0;const x0=Math.floor(fx),y0=Math.floor(fy),ax=fx-x0,ay=fy-y0,v=(x,y)=>{const t=map[id(x,y)];return t===WALL||t===LEDGE||t===VOID?g[q]:g[id(x,y)]};
   return v(x0,y0)*(1-ax)*(1-ay)+v(x0+1,y0)*ax*(1-ay)+v(x0,y0+1)*(1-ax)*ay+v(x0+1,y0+1)*ax*ay}
 /* the stairs: climbing is slower than walking, and so is the long stair between the floors */
@@ -6551,11 +6621,23 @@ function makeWell(R){const w=R.x1-R.x0+1,h=(R.y1-(R.yc||R.y0))+1;if(w<12||h<10)r
   for(let y=y0;y<y0+hh;y++)for(let x=x0;x<x0+ww;x++)map[id(x,y)]=VOID;R.well={x0,y0,x1:x0+ww-1,y1:y0+hh-1};return R.well}
 
 /* the dungeon's lower level: black wet slabs, puddles, a grating, one torch far down */
-function belowDungeon(){const n=24,c2=document.createElement('canvas');c2.width=n*16;c2.height=n*16;const g=c2.getContext('2d'),rr=mulberry(LV.zi*577+RUN);
-  for(let y=0;y<n*2;y++)for(let x=0;x<n*2;x++){const v=.6+rr()*.4;g.fillStyle=`rgb(${24*v|0},${26*v|0},${30*v|0})`;g.fillRect(x*8,y*8,8,8);g.fillStyle='rgba(0,0,0,.5)';g.fillRect(x*8,y*8,8,1);g.fillRect(x*8,y*8,1,8)}
-  for(let i=0;i<6;i++){g.fillStyle='rgba(40,60,80,.35)';g.beginPath();g.ellipse(rr()*n*16,rr()*n*16,8+rr()*12,3+rr()*4,0,0,7);g.fill()}
-  for(let i=0;i<4;i++){const x=rr()*n*16,y=rr()*n*16;g.fillStyle='#0a0a0c';g.fillRect(x,y,14,10);g.fillStyle='#3a3c42';for(let k=0;k<6;k++)g.fillRect(x+1+k*2,y,1,10)}
-  {const x=rr()*n*16,y=rr()*n*16,rg=g.createRadialGradient(x,y,1,x,y,60);rg.addColorStop(0,'rgba(255,150,70,.3)');rg.addColorStop(1,'rgba(255,150,70,0)');g.fillStyle=rg;g.fillRect(x-60,y-60,120,120)}
+function belowDungeon(){const n=24,S=n*16,c2=document.createElement('canvas');c2.width=S;c2.height=S;const g=c2.getContext('2d'),rr=mulberry(LV.zi*577+RUN+(LV.type==='castle'?91:0));
+  /* the cell blocks below: a passage across the middle with torches along it, barred cells either side of it, straw and bones and water in them */
+  for(let y=0;y<S;y+=8)for(let x=0;x<S;x+=8){const v=.75+rr()*.3;g.fillStyle=`rgb(${58*v|0},${58*v|0},${64*v|0})`;g.fillRect(x,y,8,8);g.fillStyle='rgba(0,0,0,.45)';g.fillRect(x,y,8,1);g.fillRect(x,y,1,8)}
+  const wall=(x,y,w,h)=>{g.fillStyle='#16161a';g.fillRect(x,y,w,h);g.fillStyle='#34343c';g.fillRect(x,y,w,3);for(let yy=y+4;yy<y+h;yy+=5)for(let xx=x+((yy/5|0)%2)*4;xx<x+w;xx+=8){g.fillStyle='#26262c';g.fillRect(xx,yy,7,4)}};
+  const cy0=S/2-24,cy1=S/2+24,cw=64;
+  for(const side of[0,1]){const yA=side?cy1+6:0,yB=side?S:cy0-6;wall(0,side?cy1:cy0-6,S,6);
+    for(let x=-((RUN*7)%cw);x<S;x+=cw){wall(x,yA,5,yB-yA);
+      /* the bars of the cell front */
+      const by=side?cy1:cy0-6;g.fillStyle='#0c0c0e';g.fillRect(x+14,by,cw-28,6);g.fillStyle='#6a6a74';for(let k=x+16;k<x+cw-14;k+=4)g.fillRect(k,by,2,6);
+      const ix=x+8,iy=yA+6,iw=cw-12,ih=yB-yA-12;if(rr()<.7){g.fillStyle='#6a5a2a';for(let k=0;k<14;k++)g.fillRect(ix+rr()*iw*.6,iy+rr()*ih*.6,6,2)}
+      if(rr()<.35){g.fillStyle='#c8c0a8';g.fillRect(ix+iw/2,iy+ih/2,8,3);g.beginPath();g.arc(ix+iw/2-3,iy+ih/2+1,3,0,7);g.fill()}
+      if(rr()<.4){g.fillStyle='rgba(60,90,120,.35)';g.beginPath();g.ellipse(ix+rr()*iw,iy+rr()*ih,10,4,0,0,7);g.fill()}
+      g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x+5,yA,cw-5,yB-yA)}}
+  /* the passage: worn flags, a gutter down the middle */
+  g.fillStyle='rgba(0,0,0,.25)';g.fillRect(0,S/2-1,S,2);
+  for(let x=24;x<S;x+=96)for(const ty of[cy0-2,cy1+2]){const rg=g.createRadialGradient(x,ty,1,x,ty,70);rg.addColorStop(0,'rgba(255,160,80,.55)');rg.addColorStop(.4,'rgba(255,140,60,.2)');rg.addColorStop(1,'rgba(255,140,60,0)');g.fillStyle=rg;g.fillRect(x-70,ty-70,140,140);
+    g.fillStyle='#ffb040';g.fillRect(x-1,ty-4,3,4);g.fillStyle='#fff0a0';g.fillRect(x,ty-3,1,2)}
   BELOW.set(LV,c2);return c2}
 /* a hall with its floor open in the middle, down to the level below, and a stone bridge across it */
 function makeVoidHall(R){const y0=(R.yc||R.y0)+2,y1=R.y1-2,x0=R.x0+2,x1=R.x1-2,w=x1-x0+1,h=y1-y0+1;if(w<6||h<5)return null;
@@ -6568,7 +6650,7 @@ function makeVoidHall(R){const y0=(R.yc||R.y0)+2,y1=R.y1-2,x0=R.x0+2,x1=R.x1-2,w
   R.voids=voids;R.bridge=br;R.vc={x:(x0+x1+1)/2,y:(y0+y1+1)/2};return R.voids}
 /* what you see down a light well: a lower hall, drawn once, further off than the floor round the hole */
 const BELOW=new WeakMap();
-function belowImg(){let c=BELOW.get(LV);if(c)return c;if(LV.type==='dungeon')return belowDungeon();const n=24,c2=document.createElement('canvas');c2.width=n*16;c2.height=n*16;const g=c2.getContext('2d'),rr=mulberry(LV.zi*977+AR.i*31+RUN);
+function belowImg(){let c=BELOW.get(LV);if(c)return c;if(LV.type==='dungeon'||(LV.type==='castle'&&LV.zi===0))return belowDungeon();   /* under the castle's entrance floor is the dungeon */const n=24,c2=document.createElement('canvas');c2.width=n*16;c2.height=n*16;const g=c2.getContext('2d'),rr=mulberry(LV.zi*977+AR.i*31+RUN);
   const chk=rr()<.5;for(let y=0;y<n;y++)for(let x=0;x<n;x++){const d=chk?((x+y)&1):0,v=.8+rr()*.25;g.fillStyle=chk?(d?`rgb(${46*v|0},${42*v|0},${42*v|0})`:`rgb(${118*v|0},${110*v|0},${100*v|0})`):`rgb(${84*v|0},${78*v|0},${70*v|0})`;g.fillRect(x*16,y*16,16,16);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x*16,y*16,16,1);g.fillRect(x*16,y*16,1,16)}
   g.fillStyle='#5a1218';g.fillRect(n*8-12,0,24,n*16);g.fillStyle='rgba(200,160,80,.5)';g.fillRect(n*8-12,0,2,n*16);g.fillRect(n*8+10,0,2,n*16);
   for(let i=0;i<5;i++){const x=16+rr()*(n*16-48),y=16+rr()*(n*16-40);if(Math.abs(x+16-n*8)<20)continue;g.fillStyle='#2a1a0e';g.fillRect(x,y,32,10);g.fillStyle='#5a3e22';g.fillRect(x+1,y+1,30,5)}
@@ -6577,43 +6659,49 @@ function belowImg(){let c=BELOW.get(LV);if(c)return c;if(LV.type==='dungeon')ret
   BELOW.set(LV,c2);return c2}
 function drawKeepDepth(){if(!KEEPSK[LV.type]||LV.kind!=='zone'||!LV.krooms)return;
   /* light wells first: the hall below, shifted less than the floor as you move (so it reads as further away), then the shaft's own walls */
-  const img=belowImg();for(const R of LV.krooms){const list=R.voids?R.voids:R.well?[R.well]:null;if(!list)continue;for(const w of list){const X=w.x0*T-cam.x,Y=w.y0*T-cam.y,Wd=(w.x1-w.x0+1)*T,Hd=(w.y1-w.y0+1)*T;if(X>W||Y>H||X+Wd<0||Y+Hd<0)continue;
-    ctx.save();ctx.beginPath();if(w.rows)for(const v of w.rows)ctx.rect(v.x0*T-cam.x,v.y0*T-cam.y,(v.x1-v.x0+1)*T,T);else ctx.rect(X,Y,Wd,Hd);ctx.clip();const cx=R.vc?R.vc.x*T:(w.x0+w.x1+1)*T/2,cy=R.vc?R.vc.y*T:(w.y0+w.y1+1)*T/2,px=(cam.x+W/2-cx)*.35,py=(cam.y+H/2-cy)*.35;
-    ctx.drawImage(img,Math.round(cx-cam.x-img.width/2+px),Math.round(cy-cam.y-img.height/2+py));ctx.fillStyle='rgba(4,4,8,.5)';ctx.fillRect(X,Y,Wd,Hd);
-    if(R.bridge){const b=R.bridge,bx=b.x0*T-cam.x+px*.6,by=b.y0*T-cam.y+py*.6+18;ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(bx,by,(b.x1-b.x0+1)*T,(b.y1-b.y0+1)*T)}   /* the bridge's shadow, down on the floor below */
+  const img=belowImg();for(const R of LV.krooms){const list=[...(R.voids||[]),...(R.well?[R.well]:[]),...(R.holes||[])];if(!list.length)continue;for(const w of list){const X=w.x0*T-cam.x,Y=w.y0*T-cam.y,Wd=(w.x1-w.x0+1)*T,Hd=(w.y1-w.y0+1)*T;if(X>W||Y>H||X+Wd<0||Y+Hd<0)continue;
+    ctx.save();ctx.beginPath();if(w.rows)for(const v of w.rows)ctx.rect(v.x0*T-cam.x,v.y0*T-cam.y,(v.x1-v.x0+1)*T,T);else ctx.rect(X,Y,Wd,Hd);ctx.clip();const cx=R.vc?R.vc.x*T:(w.x0+w.x1+1)*T/2,cy=R.vc?R.vc.y*T:(w.y0+w.y1+1)*T/2,pk=LV.type==='castle'&&LV.zi===0?.18:.5,px=(cam.x+W/2-cx)*pk,py=(cam.y+H/2-cy)*pk;
+    ctx.drawImage(img,Math.round(cx-cam.x-img.width/2+px),Math.round(cy-cam.y-img.height/2+py));ctx.fillStyle=LV.type==='castle'&&LV.zi===0?'rgba(2,2,4,.62)':'rgba(4,4,8,.4)';ctx.fillRect(X,Y,Wd,Hd);
     /* the far wall of the shaft, going down out of sight, and the near edge's shadow */
     const gr=ctx.createLinearGradient(0,Y,0,Y+22);gr.addColorStop(0,'#3a3632');gr.addColorStop(.6,'#1a1816');gr.addColorStop(1,'rgba(10,9,8,0)');ctx.fillStyle=gr;ctx.fillRect(X,Y,Wd,22);
-    for(let i=0;i<Wd;i+=8){ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(X+i,Y,1,12)}ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(X,Y,4,Hd);ctx.fillRect(X+Wd-4,Y,4,Hd);ctx.restore()}}
-  /* when you are up on a gallery, the floor below is further off: darker, and a little blue */
-  const pe=heroElev(),kg=keepGrid(),pr=kg[id(Math.floor(P.x/T),Math.floor((P.y-2)/T))];if(pr<0)return;const g=keepElevGrid(),tx0=Math.max(0,Math.floor(cam.x/T)),ty0=Math.max(0,Math.floor(cam.y/T)),tx1=Math.min(MW-1,Math.floor((cam.x+W)/T)),ty1=Math.min(MH-1,Math.floor((cam.y+H)/T)+1);
-  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const q=id(tx,ty),t=map[q];if(t===WALL||t===LEDGE||kg[q]!==pr)continue;const d=pe-g[q];   /* only the room you're in: the rooms beyond the walls don't change as you climb */if(d<.4)continue;ctx.fillStyle=`rgba(6,8,16,${Math.min(.55,d*.32).toFixed(3)})`;ctx.fillRect(tx*T-cam.x,ty*T-cam.y,T,T)}}
+    for(let i=0;i<Wd;i+=8){ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(X+i,Y,1,12)}ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(X,Y,4,Hd);ctx.fillRect(X+Wd-4,Y,4,Hd);ctx.restore();
+    if(w.hole){/* where the floor gave way: broken slabs jutting over the edge, and the dark between */const dg=LV.type==='dungeon';for(let i=0;i<Wd;i+=4)for(const[yy,s2]of[[Y,1],[Y+Hd,-1]]){const k=hash(w.x0*31+i,w.y0*7+s2),d=1+((k*6)|0);ctx.fillStyle=dg?'#2a2a30':'#7a7268';ctx.fillRect(X+i,s2>0?yy:yy-d,4,d);ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(X+i,s2>0?yy+d:yy-d-1,4,1)}
+      for(let j=0;j<Hd;j+=4)for(const[xx,s2]of[[X,1],[X+Wd,-1]]){const k=hash(w.y0*29+j,w.x0*5+s2),d=1+((k*5)|0);ctx.fillStyle=dg?'#24242a':'#6a6258';ctx.fillRect(s2>0?xx:xx-d,Y+j,d,4)}}}}
+  if(typeof drawFoyer==='function')drawFoyer()}
 
 /* walking up into an archway at the top of the stairs takes you on to the next floor */
 let archAway=true;
-function archCheck(){if(FOYER_GO&&mode==='world'&&LV.foyer){startFoyer();return}const A=LV.karches;if(!A||!A.length||LV.kind!=='zone'||mode!=='world')return;const tx=Math.floor(P.x/T),ty=Math.floor((P.y-2)/T);
+function archCheck(){if(FOYER_GO&&mode==='world'&&LV.foyer){startFoyer();return}ovLayer();fallCheck();if(mode!=='world')return;const A=LV.karches;if(!A||!A.length||LV.kind!=='zone'||mode!=='world')return;const tx=Math.floor(P.x/T),ty=Math.floor((P.y-2)/T);
   const a=A.find(a=>(tx===a.x||tx===a.x+1)&&ty===a.y+1);if(!a){archAway=true;return}
   const pushing=(typeof padV!=='undefined'&&padV.y<-.3)||(P.moving&&P.face==='up');if(!archAway||!pushing)return;archAway=false;
   const g=LV.gates.find(g=>g.to===LV.zi+1);if(g)useGate(g)}
 
 /* ---------- overhead: drawn over you, so you walk under it ----------
    The stone over every doorway through a thick wall (you pass beneath the lintel, into the shadow of the wall),
-   and the great timber beams across the big halls. */
-function drawKeepOver(){if(!KEEPSK[LV.type]||LV.kind!=='zone'||!LV.krooms)return;const dg=LV.type==='dungeon';
-  for(const D of LV.kdoors||[]){if(D.vert||D.th<2)continue;const X=D.p*T-cam.x,Y=D.at*T-cam.y,Wd=D.dw*T;if(X>W||X+Wd<0||Y>H||Y+T*3<0)continue;
+   (No beams across the halls: from above they read as walkways you could get onto.) */
+function drawKeepOver(){if(!KEEPSK[LV.type]||LV.kind!=='zone'||!LV.krooms)return;const dg=LV.type==='dungeon';drawFoyerOver();drawOverpasses();
+  for(const D of LV.kdoors||[]){if(D.vert||D.th<2||D.grand)continue;const X=D.p*T-cam.x,Y=D.at*T-cam.y,Wd=D.dw*T;if(X>W||X+Wd<0||Y>H||Y+T*3<0)continue;
     /* the top of the wall carries on over the doorway, and its face hangs down a little at the front */
     ctx.fillStyle=dg?'#08090b':'#1e1c20';ctx.fillRect(X,Y,Wd,T+2);ctx.fillStyle=dg?'#2a2c30':'#6a645c';ctx.fillRect(X,Y+T+2,Wd,3);ctx.fillStyle=dg?'#1a1b1e':'#4a4440';ctx.fillRect(X,Y+T+5,Wd,1);
     ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(X,Y+T+6,Wd,5);ctx.fillStyle=dg?'#14151a':'#3a3634';for(let i=0;i<Wd;i+=8)ctx.fillRect(X+i,Y+T+2,1,3)}
-  for(const R of LV.krooms){if(!['greathall','throne','hall','gallery','chapel','library'].includes(R.kind))continue;const w=R.x1-R.x0+1,y0=R.gal?R.gal.ledge+1:R.y0;if(w<9||R.y1-y0<6)continue;
-    for(let y=y0+2;y<=R.y1-2;y+=5){const X=R.x0*T-cam.x,Y=y*T+4-cam.y,Wd=w*T;if(X>W||X+Wd<0||Y>H||Y<-10)continue;
-      ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(X,Y+10,Wd,4);ctx.fillStyle=dg?'#15100c':'#2a1a0e';ctx.fillRect(X,Y,Wd,5);ctx.fillStyle=dg?'#241a12':'#4a3018';ctx.fillRect(X,Y,Wd,1);
-      ctx.fillStyle='#1a0e06';for(let x=X+12;x<X+Wd;x+=20)ctx.fillRect(x,Y+1,2,3)}}}
+}
 
 /* ================= THE FRONT OF THE CASTLE =================
    Seen from the last of the mountain road: a wall the width of the world, towers along it, banners, the gatehouse in the middle
    with the portcullis up and light inside. */
-const FACADE=new WeakMap();
-function facadeImg(){let c=FACADE.get(LV);if(c)return c;const F=LV.facade,Wd=MW*T,Hd=(F.h+1)*T;c=document.createElement('canvas');c.width=Wd;c.height=Hd;const g=c.getContext('2d'),rr=mulberry(RUN+71);
-  const wallTop=10,base=F.h*T,gx=F.gx*T+8;
+const FACADE=new WeakMap(),FACADE_UP=170;
+function facadeImg(){let c=FACADE.get(LV);if(c)return c;const F=LV.facade,Wd=MW*T,Hd=(F.h+1)*T,UP=FACADE_UP;c=document.createElement('canvas');c.width=Wd;c.height=Hd+UP;const g=c.getContext('2d'),rr=mulberry(RUN+71);
+  const wallTop=10,base=F.h*T,gx=F.gx*T+8;g.translate(0,UP);
+  /* above and behind the wall: a low snow sky, and the castle itself rising out of it, keep, halls and spires, a few windows lit */
+  {const sk=g.createLinearGradient(0,-UP,0,wallTop);sk.addColorStop(0,'#16181e');sk.addColorStop(1,'#3a3e48');g.fillStyle=sk;g.fillRect(0,-UP,Wd,UP+wallTop+2);
+   const mass=(x0,w,top,col)=>{g.fillStyle=col;g.fillRect(x0,top,w,wallTop+4-top);for(let x=x0;x<x0+w;x+=8){g.fillRect(x,top-4,5,4)}};
+   for(let x=-40;x<Wd;x+=90+((rr()*70)|0)){const w=60+((rr()*80)|0),top=-30-((rr()*50)|0);mass(x,w,top,'#22242a');for(let k=0;k<3;k++)if(rr()<.5){g.fillStyle='rgba(255,180,100,.5)';g.fillRect(x+8+((rr()*(w-16))|0),top+10+((rr()*30)|0),3,6)}}
+   /* the great keep straight ahead, over the gate */
+   g.fillStyle='#1c1e24';g.fillRect(gx-110,-UP+38,220,UP);for(let x=gx-110;x<gx+110;x+=10)g.fillRect(x,-UP+32,6,6);
+   for(let r2=0;r2<3;r2++)for(let k=-4;k<=4;k++){const wx=gx+k*24-2,wy=-UP+56+r2*30;g.fillStyle='#0a0a0e';g.fillRect(wx,wy,5,12);if(rr()<.35){g.fillStyle='rgba(255,180,100,.55)';g.fillRect(wx+1,wy+1,3,10)}}
+   for(const sx of[-140,140,-70,70]){const tx=gx+sx,h=sx%140===0?UP-10:UP-40,tw=sx%140===0?30:22;g.fillStyle='#202228';g.fillRect(tx-tw/2,-h+10,tw,h);g.fillStyle='#14161a';g.beginPath();g.moveTo(tx-tw/2-3,-h+10);g.lineTo(tx,-h-28);g.lineTo(tx+tw/2+3,-h+10);g.fill();
+     g.fillStyle='rgba(220,228,240,.5)';g.beginPath();g.moveTo(tx-2,-h-20);g.lineTo(tx,-h-28);g.lineTo(tx+2,-h-20);g.fill();if(rr()<.7){g.fillStyle='rgba(255,180,100,.5)';g.fillRect(tx-2,-h+30,3,8)}}
+   const fog=g.createLinearGradient(0,-40,0,wallTop);fog.addColorStop(0,'rgba(60,64,74,0)');fog.addColorStop(1,'rgba(60,64,74,.55)');g.fillStyle=fog;g.fillRect(0,-40,Wd,wallTop+40)}
   const stone=(x0,y0,w,h,lit,cw=10,ch=5)=>{for(let y=y0;y<y0+h;y+=ch)for(let x=x0-((y/ch|0)%2)*(cw/2);x<x0+w;x+=cw){const v=.78+rr()*.3,k=lit*(1-.25*(y-y0)/h);g.fillStyle=`rgb(${120*v*k|0},${114*v*k|0},${106*v*k|0})`;g.fillRect(Math.max(x0,x),y,Math.min(cw-1,x0+w-Math.max(x0,x)-1),ch-1)}
     g.fillStyle='rgba(20,18,16,.6)';for(let y=y0;y<y0+h;y+=ch)g.fillRect(x0,y+ch-1,w,1)};
   /* the curtain wall */
@@ -6627,13 +6715,13 @@ function facadeImg(){let c=FACADE.get(LV);if(c)return c;const F=LV.facade,Wd=MW*
   for(let i=0;i<Wd/30;i++){const x=(rr()*Wd)|0,y=wallTop+8+((rr()*40)|0);g.fillStyle='rgba(30,36,30,.18)';g.fillRect(x,y,2+((rr()*3)|0),20+((rr()*50)|0))}
   /* towers along it */
   const towers=[];for(let x=40;x<Wd-40;x+=210+((rr()*80)|0))if(Math.abs(x-gx)>110)towers.push(x);
-  for(const tx of towers){const w=56;g.fillStyle='rgba(0,0,0,.4)';g.fillRect(tx-w/2+6,wallTop,w,base-wallTop);g.fillStyle='#2a2826';g.fillRect(tx-w/2,0,w,base);stone(tx-w/2,4,w,base-4,1.12,9,5);crenel(tx-w/2,w,4);
+  for(const tx of towers){const w=56;g.fillStyle='rgba(0,0,0,.4)';g.fillRect(tx-w/2+6,wallTop,w,base-wallTop);g.fillStyle='#2a2826';g.fillRect(tx-w/2,-44,w,base+44);stone(tx-w/2,-40,w,base+40,1.12,9,5);crenel(tx-w/2,w,-40);
     for(let y=24;y<base-20;y+=34){g.fillStyle='#0a0808';g.fillRect(tx-2,y,4,12);g.fillStyle='rgba(255,190,110,.25)';g.fillRect(tx-1,y+2,2,8)}
     g.fillStyle=rr()<.5?'#6a1018':'#1a2a5a';g.fillRect(tx-30-8,wallTop+10,12,46);g.beginPath();g.moveTo(tx-38,wallTop+56);g.lineTo(tx-32,wallTop+62);g.lineTo(tx-26,wallTop+56);g.fill();g.fillStyle='#c9a24b';g.fillRect(tx-34,wallTop+24,4,8)}
   /* windows in the wall between */
   for(let x=20;x<Wd-20;x+=46){if(Math.abs(x-gx)<90||towers.some(t=>Math.abs(t-x)<40))continue;const y=wallTop+30+((rr()*30)|0);g.fillStyle='#0a0808';g.fillRect(x,y,6,12);g.beginPath();g.arc(x+3,y,3,Math.PI,0);g.fill();if(rr()<.35){g.fillStyle='rgba(255,180,100,.45)';g.fillRect(x+1,y+1,4,10)}}
   /* the gatehouse */
-  for(const sg of[-1,1]){const tx=gx+sg*46,w=48;g.fillStyle='rgba(0,0,0,.45)';g.fillRect(tx-w/2+6,0,w,base);g.fillStyle='#2a2826';g.fillRect(tx-w/2,0,w,base);stone(tx-w/2,2,w,base-2,1.2,9,5);crenel(tx-w/2,w,2);
+  for(const sg of[-1,1]){const tx=gx+sg*46,w=48;g.fillStyle='rgba(0,0,0,.45)';g.fillRect(tx-w/2+6,0,w,base);g.fillStyle='#2a2826';g.fillRect(tx-w/2,-64,w,base+64);stone(tx-w/2,-60,w,base+60,1.2,9,5);crenel(tx-w/2,w,-60);
     g.fillStyle='#0a0808';g.fillRect(tx-2,30,4,14);g.fillStyle=sg<0?'#6a1018':'#6a1018';g.fillRect(tx-7,60,14,40);g.fillStyle='#c9a24b';g.fillRect(tx-2,72,4,10)}
   g.fillStyle='#24221f';g.fillRect(gx-30,wallTop+20,60,base-wallTop-20);stone(gx-30,wallTop+20,60,base-wallTop-20,1.15,10,5);
   /* the arch, the raised portcullis, the light of the yard beyond */
@@ -6647,7 +6735,7 @@ function facadeImg(){let c=FACADE.get(LV);if(c)return c;const F=LV.facade,Wd=MW*
   g.fillStyle='rgba(230,236,246,.95)';for(let x=0;x<Wd;x+=6){if(Math.abs(x-gx)<28)continue;const h=4+((rr()*6)|0);g.fillRect(x,base-h+T,6,h)}
   g.fillStyle='rgba(0,0,0,.25)';g.fillRect(0,base,Wd,6);
   FACADE.set(LV,c);return c}
-function drawFacade(){if(!LV.facade)return;const im=facadeImg();ctx.drawImage(im,-cam.x,-cam.y);
+function drawFacade(){if(!LV.facade)return;const im=facadeImg();ctx.drawImage(im,-cam.x,-FACADE_UP-cam.y);
   for(const t of LV.facade.torches||[]){const x=t.x-cam.x,y=t.y-cam.y,s=t.s;if(x<-20||y<-20||x>W+20||y>H+20)continue;const f=Math.sin(time*13+t.x)*.8+Math.sin(time*7.7+t.y)*.6;
     const g=ctx.createRadialGradient(x,y-4,1,x,y-4,22*s);g.addColorStop(0,`rgba(255,170,80,${(.45+f*.05)*s})`);g.addColorStop(1,'rgba(255,170,80,0)');ctx.fillStyle=g;ctx.fillRect(x-24,y-28,48,48);
     ctx.fillStyle='#1a1410';ctx.fillRect(Math.round(x-1),Math.round(y-2),2,Math.round(5*s));const fy=Math.round(y-5*s-Math.max(0,f));
@@ -6657,24 +6745,82 @@ function drawFacade(){if(!LV.facade)return;const im=facadeImg();ctx.drawImage(im
    The first thing inside the castle: a hall the width of a church, a gallery right across the far end one floor up,
    two staircases curving up to it either side, red carpet from the door all the way up and round, and either side of the
    stairs the floor falls away to the hall below. */
-function buildFoyer(R){const fx=LV.foyer.fx,y0=R.y0,ledge=y0+4,yb=ledge+8,lv=R.lv||0,carp=LV.kcarp=new Set(),stairs=[],voids=[[],[]];
-  const C=(x,y)=>carp.add(id(x,y));
-  for(let y=ledge;y<=yb;y++){const i=yb-y,k=Math.round(8*Math.sin(i/8*Math.PI/2)),cl=fx-4-k;
-    const rowL={x0:cl-1,x1:cl+1,y0:y,y1:y,e:(yb+1-y)/(yb-ledge+2)},rowR={x0:2*fx-(cl+1),x1:2*fx-(cl-1),y0:y,y1:y,e:rowL.e};stairs.push(rowL,rowR);
-    for(const S of[rowL,rowR])for(let x=S.x0;x<=S.x1;x++)map[id(x,y)]=STAIR;C(cl,y);C(2*fx-cl,y);
-    if(y===ledge){for(let x=R.x0;x<=R.x1;x++)if(map[id(x,y)]!==STAIR)map[id(x,y)]=LEDGE;continue}
-    /* the floor falls away outside the stairs */
-    if(y>ledge){const a={x0:R.x0,x1:rowL.x0-1,y0:y,y1:y},b={x0:rowR.x1+1,x1:R.x1,y0:y,y1:y};for(const v of[a,b])if(v.x1>=v.x0)for(let x=v.x0;x<=v.x1;x++)map[id(x,y)]=VOID;voids[0].push(a);voids[1].push(b);
-      if(y<yb){map[id(rowL.x1+1,y)]=LEDGE;map[id(rowR.x0-1,y)]=LEDGE}}}   /* a balustrade up the inside of each stair */
-  for(let y=yb+1;y<=yb+2;y++){const a={x0:R.x0,x1:fx-7,y0:y,y1:y},b={x0:2*fx-a.x1,x1:R.x1,y0:y,y1:y};for(const v of[a,b])for(let x=v.x0;x<=v.x1;x++)map[id(x,y)]=VOID;voids[0].push(a);voids[1].push(b)}
-  /* carpet: up the middle from the door, across to the foot of each stair, up them, along the gallery and out the top */
-  for(let y=yb+1;y<=R.y1;y++)for(let x=fx-1;x<=fx+1;x++)map[id(x,y)]=CARPET;for(let x=fx-4;x<=fx+4;x++)map[id(x,yb+1)]=CARPET;
-  for(let y=R.y1+1;y<MH;y++)for(let x=fx-1;x<=fx+1;x++){const q=id(x,y);if(map[q]===G||map[q]===ROAD)map[q]=CARPET}
-  for(let y=LV.foyer.vy1+1;y<MH;y++)for(const x of[fx-2,fx+2]){const q=id(x,y);if(map[q]===ROAD)map[q]=G}
-  for(let y=y0+1;y<=y0+2;y++)for(let x=fx-12;x<=fx+12;x++)map[id(x,y)]=CARPET;for(let x=fx-1;x<=fx+2;x++)map[id(x,y0)]=CARPET;
-  R.gal={y0,y1:ledge-1,ledge,stairs};R.yc=ledge+1;R.voids=[];R.vrows=voids;
-  for(const side of voids){const vs=side.filter(v=>v.x1>=v.x0);if(!vs.length)continue;R.voids.push({x0:Math.min(...vs.map(v=>v.x0)),x1:Math.max(...vs.map(v=>v.x1)),y0:vs[0].y0,y1:vs[vs.length-1].y1,rows:vs})}
-  R.vc={x:fx+.5,y:(ledge+yb)/2+1};KELEV.delete(LV)}
+function buildFoyer(R){const F=LV.foyer,fx=F.fx,y0=R.y0,ge=y0+4,lv=R.lv||0,stairs=[],cx=fx*T+8,cy=(y0+10)*T+8,Rr=104,Ri=120,Ro=168;
+  Object.assign(F,{cx,cy,Rr,Ri,Ro,ge});
+  for(let ty=y0;ty<=R.y1;ty++)for(let tx=R.x0;tx<=R.x1;tx++){const q=id(tx,ty),px=tx*T+8,py=ty*T+8,d=Math.hypot(px-cx,py-cy),band=d>=Ri&&d<=Ro;let t=G;
+    if(ty<ge)t=G;else if(ty===ge)t=band?STAIR:LEDGE;else if(ty<=R.y1-2)t=band?STAIR:d>Ro?VOID:d>=Rr?LEDGE:G;
+    map[q]=t;if(t===STAIR){const th=Math.atan2(cy-py,px-cx)*180/Math.PI,e=px<cx?(210-(th<0?th+360:th))/72:(th+30)/72;stairs.push({x0:tx,x1:tx,y0:ty,y1:ty,e:clamp(e,.06,1)})}}
+  /* the centrepiece: a great brazier on a plinth in the middle of the floor the stairs curve round */
+  addProp('k_grandfont',fx,y0+10,true,{});for(const sx of[-3,3]){const q=id(fx+sx,R.y1);if(map[q]===G&&!PROPAT[q])addProp('k_statue',fx+sx,R.y1,true,{})}
+  R.gal={y0,y1:ge-1,ledge:ge,stairs};R.yc=ge+1;R.voids=null;R.painted=1;
+  for(const D of LV.kdoors)if(!D.vert&&D.p<=fx&&D.p+D.dw>fx&&(D.at===R.y1+1||D.at===R.y0-3))D.grand=1;   /* no lintel hanging over the great doorways */
+  KELEV.delete(LV)}
+/* the foyer is painted whole, once: marble, the gallery and its balustrade, the two stairs sweeping up, the drops either side */
+const FOYIMG=new WeakMap();
+function foyerImg(){let c=FOYIMG.get(LV);if(c)return c;const F=LV.foyer,X0=F.x0*T,Y0=F.y0*T,Wd=(F.x1-F.x0+1)*T,Hd=(F.y1-F.y0+1)*T,cx=F.cx-X0,cy=F.cy-Y0,{Rr,Ri,Ro}=F,ge=(F.ge-F.y0)*T,wb=(F.y1-1-F.y0)*T,rr=mulberry(RUN+5);
+  c=document.createElement('canvas');c.width=Wd;c.height=Hd;const g=c.getContext('2d'),A=(r,a0,a1)=>{g.beginPath();g.arc(cx,cy,r,a0,a1)};
+  /* marble: big slabs, cream and near-black in a chequer, faint veins */
+  /* pale marble in great slabs, softly veined, with a small dark lozenge set where four slabs meet */
+  for(let y=0;y<Hd;y+=32)for(let x=0;x<Wd;x+=32){const v=.94+rr()*.08;g.fillStyle=`rgb(${184*v|0},${176*v|0},${162*v|0})`;g.fillRect(x,y,32,32);
+    g.strokeStyle='rgba(130,116,100,.25)';g.lineWidth=1;g.beginPath();let vx=x+rr()*32,vy=y;g.moveTo(vx,vy);for(let k=0;k<5;k++){vx+=rr()*10-5;vy+=7;g.lineTo(vx,vy)}g.stroke()}
+  g.fillStyle='rgba(90,80,70,.5)';for(let y=0;y<=Hd;y+=32)g.fillRect(0,y,Wd,1);for(let x=0;x<=Wd;x+=32)g.fillRect(x,0,1,Hd);
+  for(let y=0;y<=Hd;y+=32)for(let x=0;x<=Wd;x+=32){g.fillStyle='#2a2226';g.beginPath();g.moveTo(x,y-5);g.lineTo(x+5,y);g.lineTo(x,y+5);g.lineTo(x-5,y);g.fill();g.fillStyle='#6a2a2a';g.fillRect(x-1,y-1,2,2)}
+  /* the gallery floor: darker, polished, with the runner along it and up to the door at the back */
+  g.fillStyle='rgba(30,20,24,.45)';g.fillRect(0,0,Wd,ge);
+  const runner=(x,y,w,h)=>{g.fillStyle='#4a080c';g.fillRect(x,y,w,h);g.fillStyle='#8a1a20';g.fillRect(x+2,y+2,w-4,h-4);g.fillStyle='#c9a24b';g.fillRect(x+3,y+3,w-6,1);g.fillRect(x+3,y+h-4,w-6,1);if(h>w){g.fillRect(x+3,y+3,1,h-6);g.fillRect(x+w-4,y+3,1,h-6)}else{g.fillRect(x+3,y+3,1,h-6);g.fillRect(x+w-4,y+3,1,h-6)}
+    g.fillStyle='rgba(200,60,60,.25)';for(let k=0;k<(w>h?w:h);k+=10)w>h?g.fillRect(x+k,y+5,4,h-10):g.fillRect(x+5,y+k,w-10,4)};
+  runner(cx-8-T,-2,4*T,T+30);runner(2*T,T+4,Wd-4*T,26);
+  /* the drops: cut away, so the hall below shows through */
+  g.save();g.beginPath();g.rect(0,ge+T,Wd,wb-ge-T);g.clip();g.beginPath();g.rect(0,0,Wd,Hd);g.arc(cx,cy,Ro,0,Math.PI*2,true);g.clip('evenodd');g.clearRect(0,0,Wd,Hd);
+  g.fillStyle='rgba(0,0,6,.6)';g.fillRect(0,0,Wd,Hd);
+  {const sh=g.createLinearGradient(0,ge+T,0,ge+T+40);sh.addColorStop(0,'rgba(0,0,0,.85)');sh.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=sh;g.fillRect(0,ge+T,Wd,40)}   /* under the gallery's edge */
+  g.lineWidth=14;g.strokeStyle='rgba(0,0,0,.55)';A(Ro+7,0,Math.PI*2);g.stroke();   /* the stair's side going down into the dark */
+  g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,ge+T,6,wb);g.fillRect(Wd-6,ge+T,6,wb);g.restore();
+  /* the stairs: two quarter-sweeps of a ring, steps radiating, each a shade lighter as they climb */
+  g.save();g.beginPath();g.rect(0,ge+2,Wd,wb-ge+T);g.clip();
+  const st=(a0,a1,dir)=>{const n=22;for(let k=0;k<n;k++){const u=k/n,a=a0+(a1-a0)*u,b=a0+(a1-a0)*(k+1)/n,lit=.62+.45*u;
+      g.beginPath();g.arc(cx,cy,Ro,a,b,dir<0);g.arc(cx,cy,Ri,b,a,dir>0);g.closePath();g.fillStyle=`rgb(${150*lit|0},${142*lit|0},${128*lit|0})`;g.fill();
+      g.beginPath();g.moveTo(cx+Math.cos(b)*Ri,cy+Math.sin(b)*Ri);g.lineTo(cx+Math.cos(b)*Ro,cy+Math.sin(b)*Ro);g.strokeStyle=`rgba(20,16,14,${.55})`;g.lineWidth=2;g.stroke();
+      /* the carpet up the middle of each step */
+      g.beginPath();g.arc(cx,cy,Ro-12,a,b,dir<0);g.arc(cx,cy,Ri+12,b,a,dir>0);g.closePath();g.fillStyle=`rgb(${150*lit|0},${26*lit|0},${32*lit|0})`;g.fill();
+      g.beginPath();g.moveTo(cx+Math.cos(b)*(Ri+12),cy+Math.sin(b)*(Ri+12));g.lineTo(cx+Math.cos(b)*(Ro-12),cy+Math.sin(b)*(Ro-12));g.strokeStyle='rgba(40,0,4,.6)';g.lineWidth=1.5;g.stroke()}
+    g.lineWidth=1;g.strokeStyle='#c9a24b';A(Ri+13,Math.min(a0,a1),Math.max(a0,a1));g.stroke();A(Ro-13,Math.min(a0,a1),Math.max(a0,a1));g.stroke()};
+  const rad=d=>d*Math.PI/180;st(rad(150),rad(270),1);st(rad(30),rad(-90),-1);
+  /* balustrades: along both edges of each stair */
+  const rail=(r,a0,a1)=>{g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.45)';A(r+2,a0,a1);g.stroke();for(let a=a0;a<=a1;a+=7/r){const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;g.fillStyle='rgba(0,0,0,.45)';g.fillRect(x-1,y,3,4);g.fillStyle='#d8d0bc';g.fillRect(x-1,y-3,2,5)}
+    g.lineWidth=2;g.strokeStyle='#e8e0cc';A(r,a0,a1);g.stroke();g.lineWidth=1;g.strokeStyle='#8a8070';A(r+1.5,a0,a1);g.stroke()};
+  for(const[a0,a1]of[[rad(150),rad(270)],[rad(-90),rad(30)]]){rail(Ri-3,a0,a1);rail(Ro+1,a0,a1)}
+  g.restore();
+  /* the gallery's edge: a balustrade along it where the stairs don't come up, and its face below */
+  {const inBand=x=>{const d=Math.hypot(x-cx,ge+T/2-cy);return d>=Ri-2&&d<=Ro+2};
+   for(let x=0;x<Wd;x++){if(inBand(x))continue;g.fillStyle='#5a544c';g.fillRect(x,ge+8,1,8);g.fillStyle='#3a3530';g.fillRect(x,ge+14,1,2);g.fillStyle='#e0d8c4';g.fillRect(x,ge,1,2);g.fillStyle='#9a9282';g.fillRect(x,ge+2,1,1);if(x%6<2){g.fillStyle='#d0c8b4';g.fillRect(x,ge+3,1,5)}else{g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x,ge+3,1,5)}}}
+  /* the floor the stairs curve round: a round inlay of darker marble bordered in brass, the fountain stands in it */
+  {g.save();g.beginPath();g.rect(0,ge+T,Wd,Hd);g.clip();g.beginPath();g.arc(cx,cy,Rr-10,0,Math.PI*2);g.fillStyle='#7a7064';g.fill();g.strokeStyle='#c9a24b';g.lineWidth=2;g.stroke();
+   g.beginPath();g.arc(cx,cy,Rr-16,0,Math.PI*2);g.strokeStyle='rgba(40,30,24,.5)';g.lineWidth=1;g.stroke();
+   for(let k=0;k<24;k++){const a=k*Math.PI/12;g.fillStyle=k%2?'#5a5046':'#a09484';g.beginPath();g.moveTo(cx+Math.cos(a)*(Rr-16),cy+Math.sin(a)*(Rr-16));g.lineTo(cx+Math.cos(a+.13)*(Rr-28),cy+Math.sin(a+.13)*(Rr-28));g.lineTo(cx+Math.cos(a+.26)*(Rr-16),cy+Math.sin(a+.26)*(Rr-16));g.fill()}
+   g.restore()}
+  /* long banners hanging from the gallery rail between the stairs, the house's red and gold */
+  for(const bx of[cx-40,cx+40]){const by=ge+4;g.fillStyle='rgba(0,0,0,.35)';g.fillRect(bx-5,by+2,12,36);g.fillStyle='#5a0a10';g.fillRect(bx-6,by,12,32);g.fillStyle='#8a1820';g.fillRect(bx-5,by,10,31);
+    g.beginPath();g.moveTo(bx-6,by+32);g.lineTo(bx,by+38);g.lineTo(bx+6,by+32);g.fillStyle='#8a1820';g.fill();g.fillStyle='#c9a24b';g.fillRect(bx-6,by,12,2);g.fillRect(bx-1,by+9,2,10);g.fillRect(bx-4,by+12,8,2);g.beginPath();g.arc(bx,by+24,3,0,7);g.fill();g.fillStyle='#8a1820';g.beginPath();g.arc(bx,by+24,1.5,0,7);g.fill()}
+  /* carpet: in from the vestibule, up to the rose, and along the foot of the stairs */
+  runner(cx-24,cy+Rr-10,48,Hd-(cy+Rr-10));runner(cx-Ro,wb-2,Ro*2,T+4);
+  FOYIMG.set(LV,c);return c}
+function drawFoyer(){const F=LV.foyer;if(!F||F.cx==null)return;const X0=F.x0*T-cam.x,Y0=F.y0*T-cam.y,Wd=(F.x1-F.x0+1)*T,Hd=(F.y1-F.y0+1)*T;if(X0>W||Y0>H||X0+Wd<0||Y0+Hd<0)return;
+  /* the hall below, through each drop, moving less than the floor so it sits further down */
+  const img=belowImg(),cx=F.cx-cam.x,cy=F.cy-cam.y;ctx.save();ctx.beginPath();ctx.rect(X0,(F.ge+1)*T-cam.y,Wd,(F.y1-2-F.ge)*T);ctx.clip();ctx.beginPath();ctx.rect(X0,Y0,Wd,Hd);ctx.arc(cx,cy,F.Ro,0,Math.PI*2,true);ctx.clip('evenodd');
+  ctx.fillStyle='#08080a';ctx.fillRect(X0,Y0,Wd,Hd);for(const sx of[-1,1]){const vx=F.cx+sx*(F.Ro+40),vy=F.cy,px=(cam.x+W/2-vx)*.18,py=(cam.y+H/2-vy)*.18;ctx.drawImage(img,Math.round(vx-cam.x-img.width/2+px),Math.round(vy-cam.y-img.height/2+py))}ctx.restore();
+  ctx.drawImage(foyerImg(),X0,Y0)}
+/* hanging over the hall: rings of candles, lit, with the warm light falling round them */
+function drawFoyerOver(){const F=LV.foyer,pts=[];if(F&&F.cx!=null)pts.push([F.cx,F.cy-20],[F.x0*T+56,F.cy+8],[(F.x1+1)*T-56,F.cy+8]);for(const c of LV.kchand||[])pts.push([c.x,c.y]);if(!pts.length)return;
+  for(const[x0,y0]of pts){const x=x0-cam.x,y=y0-cam.y-30;if(x<-60||y<-60||x>W+60||y>H+60)continue;const g=ctx.createRadialGradient(x,y+30,4,x,y+30,90);g.addColorStop(0,'rgba(255,190,110,.16)');g.addColorStop(1,'rgba(255,190,110,0)');ctx.fillStyle=g;ctx.fillRect(x-90,y-60,180,180);
+    ctx.strokeStyle='rgba(20,14,8,.8)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y-60);ctx.lineTo(x,y);ctx.stroke();ctx.strokeStyle='#8a6a2a';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y,16,6,0,0,Math.PI*2);ctx.stroke();
+    for(let k=0;k<10;k++){const a=k*Math.PI/5,px=x+Math.cos(a)*16,py=y+Math.sin(a)*6,f=Math.sin(time*11+k*2+x)*.6;ctx.fillStyle='#e8e0c8';ctx.fillRect(px-1,py-4,2,4);ctx.fillStyle='#ffb040';ctx.fillRect(px-1,py-7-f,2,3);ctx.fillStyle='#fff0b0';ctx.fillRect(px-.5,py-6-f,1,1)}}}
+NEWP.k_font={u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const x=Math.round(bx),y=Math.round(by),f=Math.sin(time*9)*.8+Math.sin(time*13.3)*.5;
+  const g=ctx.createRadialGradient(x,y-20,2,x,y-20,60);g.addColorStop(0,'rgba(255,160,70,.35)');g.addColorStop(1,'rgba(255,160,70,0)');ctx.fillStyle=g;ctx.fillRect(x-60,y-80,120,120);
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(x,y+4,14,4,0,0,7);ctx.fill();
+  ctx.fillStyle='#2a2622';ctx.fillRect(x-12,y-6,24,10);ctx.fillStyle='#8a8272';ctx.fillRect(x-12,y-8,24,3);ctx.fillStyle='#5a544a';ctx.fillRect(x-9,y-18,18,10);ctx.fillStyle='#9a9282';ctx.fillRect(x-9,y-19,18,2);
+  ctx.fillStyle='#1a1410';ctx.beginPath();ctx.ellipse(x,y-21,14,5,0,0,7);ctx.fill();ctx.fillStyle='#c9a24b';ctx.beginPath();ctx.ellipse(x,y-22,14,5,0,Math.PI,0);ctx.fill();ctx.fillStyle='#3a1a08';ctx.beginPath();ctx.ellipse(x,y-22,11,3.5,0,0,7);ctx.fill();
+  for(let k=-2;k<=2;k++){const h=10+(2-Math.abs(k))*5+Math.sin(time*12+k*1.7)*2;ctx.fillStyle='#c8401a';ctx.fillRect(x+k*4-2,y-22-h,4,h);ctx.fillStyle='#f08a24';ctx.fillRect(x+k*4-1,y-20-h*.8,3,h*.7);ctx.fillStyle='#ffd870';ctx.fillRect(x+k*4-1,y-18-h*.45,2,h*.35)}}};
 NEWP.k_stand={u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const f=Math.sin(time*13+p.tx*3)*.8+Math.sin(time*7.7+p.ty)*.6,x=Math.round(bx),y=Math.round(by);
   const g=ctx.createRadialGradient(x,y-22,1,x,y-22,34);g.addColorStop(0,`rgba(255,170,80,${(.3+f*.03).toFixed(3)})`);g.addColorStop(1,'rgba(255,170,80,0)');ctx.fillStyle=g;ctx.fillRect(x-36,y-58,72,72);
   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(x,y+2,6,2,0,0,7);ctx.fill();
@@ -6686,12 +6832,66 @@ NEWP.k_stand={u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const f=Math.sin(time*13+
 let FOYER_GO=0;
 function startFoyer(){FOYER_GO=0;const F=LV.foyer;if(!F||P.foyerSeen)return;P.foyerSeen=1;
   const fx=F.fx*T+8;CINE={ph:'foyer',t:0,focus:{x:P.x,y:P.y},debris:[],sx:P.x,sy:P.y,ex:fx,ey:(F.y1-1)*T+12};mode='cine';padV={x:0,y:0};P.face='up';P.moving=false}
-function updFoyer(dt){const C=CINE,F=LV.foyer,t=C.t,e=u=>u<0?0:u>1?1:u*u*(3-2*u),fx=F.fx*T+8,mid=(F.y0+9)*T,
-    keys=[[0,C.sx,C.sy-60],[3.6,fx,(F.y1-2)*T],[5.4,(F.x0+3)*T,mid],[6.2,(F.x0+3)*T,mid],[8.2,(F.x1-2)*T,mid],[9,(F.x1-2)*T,mid],[10.6,fx,(F.y0+2)*T],[11.8,fx,(F.y0+2)*T],[13.2,C.ex,C.ey]];
-  /* he walks the first stretch, then stands and looks */
-  const w=e(t/3.6);P.x=C.sx+(C.ex-C.sx)*w;P.y=C.sy+(C.ey-C.sy)*w;P.moving=t<3.5;if(P.moving)P.anim=(P.anim||0)+dt;P.face='up';
-  let i=0;while(i<keys.length-2&&t>keys[i+1][0])i++;const a=keys[i],b=keys[i+1],u=e((t-a[0])/(b[0]-a[0]));C.focus={x:a[1]+(b[1]-a[1])*u,y:a[2]+(b[2]-a[2])*u};
-  if(t>=keys[keys.length-1][0]){CINE=null;mode='world';P.moving=false;P.inv=Math.max(P.inv||0,1)}}
+function updFoyer(dt){const C=CINE,F=LV.foyer,t=C.t,e=u=>u<0?0:u>1?1:u*u*(3-2*u);
+  /* he walks in at his own pace; as he comes through the doorway the view lifts and draws back over the whole hall, holds, and comes back to him */
+  const w=clamp(t/3.4,0,1);P.x=C.sx+(C.ex-C.sx)*w;P.y=C.sy+(C.ey-C.sy)*w;P.moving=w<1;if(P.moving)P.anim=(P.anim||0)+dt;P.face='up';
+  const out=e((t-.3)/2.1)*(1-e((t-5.2)/1.6)),hx=F.cx,hy=F.cy-24;C.focus={x:P.x+(hx-P.x)*out,y:P.y-12+(hy-P.y+12)*out};C.zoom=1-.3*out;
+  if(t>=6.9){CINE=null;mode='world';P.moving=false;P.inv=Math.max(P.inv||0,1)}}
+
+/* walking on into a hole in the floor: a moment teetering, then down you go, to the floor below, and it hurts */
+let FALLT=0,FALLLAST=0;
+function fallCheck(){const now=time,dt=Math.min(.1,now-FALLLAST);FALLLAST=now;if(LV.fallTo==null||mode!=='world'||!P.moving){FALLT=0;return}
+  const d={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[P.face]||[0,0],tx=Math.floor((P.x+d[0]*7)/T),ty=Math.floor((P.y-3+d[1]*7)/T);
+  if(map[id(tx,ty)]!==PIT){FALLT=0;return}FALLT+=dt;if(FALLT>.18){FALLT=0;fallThrough(tx,ty)}}
+function fallThrough(hx,hy){const ar=AR,to=LV.fallTo,dmg=Math.ceil(P.max*.15);if(SFX.whoosh)SFX.whoosh();
+  loadInto(()=>{const L=getZone(ar,to);bindLevel(L);let best=null,bd=1e9;
+    for(let y=2;y<MH-2;y++)for(let x=2;x<MW-2;x++){const q=id(x,y);if(!L.reach||!L.reach[q]||BLOCK[map[q]]||PROPAT[q])continue;const dd=Math.hypot(x-hx,y-hy);if(dd<bd){bd=dd;best={x,y}}}
+    best=best||L.start;enterLevel(L,best.x*T+8,best.y*T+12);P.hp=Math.max(1,P.hp-dmg);exitAway=true;for(const q of L.gates||[])q.away=true;archAway=false;
+    if(typeof updHud==='function')updHud();setTimeout(()=>{if(SFX.thud)SFX.thud();banner(L.name,true)},500)},ar.def.name,'You fall through the floor.')}
+
+NEWP.k_fountain={u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const x=Math.round(bx),y=Math.round(by)+5;ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x,y+3,26,8,0,0,7);ctx.fill();
+  ctx.fillStyle='#6a6458';ctx.beginPath();ctx.ellipse(x,y,24,9,0,0,7);ctx.fill();ctx.fillStyle='#a8a090';ctx.beginPath();ctx.ellipse(x,y-3,24,9,0,0,7);ctx.fill();ctx.fillStyle='#2a4a5a';ctx.beginPath();ctx.ellipse(x,y-3,20,7,0,0,7);ctx.fill();
+  for(let k=0;k<3;k++){const a=time*1.5+k*2.1;ctx.strokeStyle='rgba(180,220,240,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y-3,4+((time*6+k*6)%16),1.5+((time*2+k*2)%5),0,0,7);ctx.stroke()}
+  ctx.fillStyle='#8a8272';ctx.fillRect(x-3,y-22,6,19);ctx.fillStyle='#b0a898';ctx.fillRect(x-3,y-22,2,19);ctx.fillStyle='#a8a090';ctx.beginPath();ctx.ellipse(x,y-22,8,3,0,0,7);ctx.fill();
+  for(let k=0;k<6;k++){const u=((time*1.2+k/6)%1),a=k*Math.PI/3;ctx.fillStyle=`rgba(200,230,250,${.7*(1-u)})`;ctx.fillRect(x+Math.cos(a)*u*12,y-24+u*u*20-u*8,1,2)}}};
+NEWP.k_tree={u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const x=Math.round(bx),y=Math.round(by),k=hash(p.tx,p.ty),sw=Math.sin(time*1.3+k*6)*1;ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+1,9,3,0,0,7);ctx.fill();
+  ctx.fillStyle='#3a2a1a';ctx.fillRect(x-2,y-12,4,13);for(const[dx,dy,r,c]of[[0,-20,10,'#1e3a1e'],[-5,-16,7,'#244424'],[5,-17,7,'#2a4a26'],[sw,-23,6,'#33582e'],[-3+sw,-21,4,'#3e6a34']]){ctx.fillStyle=c;ctx.beginPath();ctx.arc(x+dx,y+dy,r,0,7);ctx.fill()}}};
+
+/* the foyer's fountain: a wide round basin, a pedestal and an upper bowl spilling into it */
+NEWP.k_grandfont={u:()=>0,use:async()=>{},draw:(p,bx,by)=>{const x=Math.round(bx),y=Math.round(by)+6,E=(cx,cy,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,7);ctx.fill()};
+  E(x,y+6,40,13,'rgba(0,0,0,.3)');E(x,y+2,38,13,'#7a7264');E(x,y-2,38,13,'#cfc6b2');E(x,y-2,33,10.5,'#5a544a');E(x,y-1,32,10,'#2a5a6e');
+  for(let k=0;k<4;k++){const u=((time*.45+k/4)%1);ctx.strokeStyle=`rgba(200,235,250,${.4*(1-u)})`;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y-1,6+u*24,2+u*7.5,0,0,7);ctx.stroke()}
+  ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-20,y-5,10,1);
+  ctx.fillStyle='#8a8272';ctx.fillRect(x-4,y-30,8,28);ctx.fillStyle='#b8b0a0';ctx.fillRect(x-4,y-30,3,28);E(x,y-30,14,5,'#a8a090');E(x,y-31,14,5,'#d0c8b4');E(x,y-31,11,3.5,'#2a5a6e');
+  ctx.fillStyle='#8a8272';ctx.fillRect(x-2,y-44,4,13);E(x,y-44,5,2,'#d0c8b4');
+  for(let k=0;k<10;k++){const a=k/10*Math.PI*2,u=((time*1.4+k*.37)%1),rx=11+u*5,ry=3.5+u*1.5,yy=y-31+u*u*26;ctx.fillStyle=`rgba(210,240,255,${.75*(1-u*.6)})`;ctx.fillRect(x+Math.cos(a)*rx,yy+Math.sin(a)*ry*.3,1,2)}
+  for(let k=0;k<6;k++){const u=((time*1.8+k/6)%1),a=k*Math.PI/3;ctx.fillStyle=`rgba(220,245,255,${.8*(1-u)})`;ctx.fillRect(x+Math.cos(a)*u*7,y-46+u*u*14-u*5,1,2)}}};
+
+/* ================= WALKWAYS OVER THE HALLS =================
+   Tiles in such a hall are marked: 1 the raised floor (only from up there), 2 the hall floor (only from down there), 3 the bridge,
+   which is both — over it if you came up the stairs, under it if you didn't. */
+function buildOverpass(R){const lv=R.lv||0,x0=R.x0,x1=R.x1,y0=R.y0,y1=R.y1,ym=y1-4,wy=y0+((ym-y0-1)>>1);if(ym-y0<6)return false;
+  if(!LV.ovm){LV.ovm=new Uint8Array(MW*MH);LV.ovl=new Uint8Array(MW*MH)}const M=LV.ovm,Lv=LV.ovl,set=(x,y,t,m)=>{const q=id(x,y);if(t!=null)map[q]=t;M[q]=m;Lv[q]=lv+10};
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)set(x,y,null,2);
+  for(const sd of[0,1]){const a=sd?x1-2:x0,b=sd?x1:x0+2,ed=sd?x1-3:x0+3;
+    for(let y=y0;y<=ym;y++){for(let x=a;x<=b;x++)set(x,y,G,1);set(ed,y,y===wy||y===wy+1?G:LEDGE,y===wy||y===wy+1?1:0)}
+    for(let y=ym+1;y<=ym+3;y++){for(let x=a;x<=b;x++)set(x,y,STAIR,0);set(ed,y,LEDGE,0)}}
+  for(let y=wy;y<=wy+1;y++)for(let x=x0+4;x<=x1-4;x++)set(x,y,G,3);
+  R.ov={wy,ym,ter:[{x0,x1:x0+3,y0,y1:ym},{x0:x1-3,x1,y0,y1:ym}],stairs:[{x0,x1:x0+2,y0:ym+1,y1:ym+3},{x0:x1-2,x1,y0:ym+1,y1:ym+3}],deck:{x0:x0+4,x1:x1-4,y0:wy,y1:wy+1}};
+  KELEV.delete(LV);return true}
+/* which level you are on, from where you stand */
+function ovLayer(){if(!LV.ovm)return;const tx=Math.floor(P.x/T),ty=Math.floor((P.y-2)/T),q=id(tx,ty),m=LV.ovm[q];
+  if(map[q]===STAIR&&LV.ovl[q]){P.layer=heroElev()>LV.ovl[q]-10+.5?'up':'down';return}if(m===1)P.layer='up';else if(m===2)P.layer='down';else if(m===0)P.layer=null}
+function ovOK(x,y){if(!LV.ovm)return true;for(const[a,b]of[[x-4,y-4],[x+3,y-4],[x-4,y-1],[x+3,y-1]]){const m=LV.ovm[id(Math.floor(a/T),Math.floor(b/T))];if(m===1&&P.layer==='down'||m===2&&P.layer==='up')return false}return true}
+/* the bridge itself, drawn over everything below it: you walk under it, or on it */
+function drawOverpasses(){if(!LV.ovm)return;let redraw=0;for(const R of LV.krooms){if(!R.ov)continue;const D=R.ov.deck,X=(D.x0-1)*T-cam.x,Y=D.y0*T-cam.y,Wd=(D.x1-D.x0+3)*T,Hd=2*T;if(X>W||Y>H||X+Wd<0||Y+Hd+20<0)continue;
+    ctx.fillStyle='rgba(0,0,0,.32)';ctx.fillRect(X+T,Y+Hd+6,Wd-2*T,10);   /* its shadow on the hall floor */
+    ctx.fillStyle='#2a2622';ctx.fillRect(X,Y+Hd,Wd,7);ctx.fillStyle='#4a4440';for(let i=0;i<Wd;i+=10)ctx.fillRect(X+i,Y+Hd+1,9,5);ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(X,Y+Hd+5,Wd,2);   /* the face of the bridge */
+    for(let y=0;y<Hd;y+=8)for(let x=0;x<Wd;x+=12){const v=.88+hash((x/12|0)+D.x0*7,(y>>3)+D.y0*3)*.2,o=((y>>3)&1)*6;ctx.fillStyle=`rgb(${168*v|0},${160*v|0},${146*v|0})`;ctx.fillRect(X+x+o,Y+y,11,7);ctx.fillStyle='rgba(60,54,48,.6)';ctx.fillRect(X+x+o+11,Y+y,1,8);ctx.fillRect(X+x+o,Y+y+7,12,1)}
+    ctx.fillStyle='#5a0a10';ctx.fillRect(X+T,Y+9,Wd-2*T,14);ctx.fillStyle='#8a1820';ctx.fillRect(X+T,Y+10,Wd-2*T,12);ctx.fillStyle='#c9a24b';ctx.fillRect(X+T,Y+11,Wd-2*T,1);ctx.fillRect(X+T,Y+20,Wd-2*T,1);
+    for(const ry of[Y-2,Y+Hd-4]){ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(X+T,ry+4,Wd-2*T,2);ctx.fillStyle='#e0d8c4';ctx.fillRect(X+T,ry,Wd-2*T,2);for(let x=X+T;x<X+Wd-T;x+=5){ctx.fillStyle='#c8c0ac';ctx.fillRect(x,ry+2,2,4)}}
+    const px=P.x,py=P.y,on=px>X+cam.x-4&&px<X+cam.x+Wd+4&&py>Y+cam.y-8&&py<Y+cam.y+Hd+26;if(on)redraw=P.layer==='up'?1:2}
+  if(redraw===1)elevDraw(P.x,P.y,true,drawPlayer);else if(redraw===2){ctx.globalAlpha=.4;elevDraw(P.x,P.y,true,drawPlayer);ctx.globalAlpha=1}}
 /* ================= THE KEYS, THE COLLAR, AND THE CELL AT THE BOTTOM =================
    The way down into the dungeon is a locked door by the castle's entrance; the keys are the King's.
    Somewhere in the dungeon is an old collar. At the very bottom is a cell, and without the collar there is
@@ -7410,7 +7610,7 @@ function loopBody(now){const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
   if(mode==='world')updWorld(dt);else if(mode==='cine')updCine(dt);else if(mode==='mort')updMort(dt);else if(mode==='ending')updEnding(dt);
   if(mode!=='title'&&mode!=='dead'&&mode!=='load')rec('time',dt);
   updParticles(dt);
-  if(mode==='ending')drawEnding();else if(mode==='title')drawTitle();else if(scene==='battle')drawBattle(dt);else{if(mode!=='world')updCam();drawWorld()}
+  if(mode==='ending')drawEnding();else if(mode==='title')drawTitle();else if(scene==='battle')drawBattle(dt);else{const z=mode==='cine'&&CINE&&CINE.zoom&&CINE.zoom<.999?CINE.zoom:1;if(z<1){/* a cutscene can draw back to take in more: the same world drawn smaller */const w0=W,h0=H;W=w0/z;H=h0/z;try{updCam();ctx.save();ctx.scale(z,z);drawWorld();ctx.restore()}finally{W=w0;H=h0}}else{if(mode!=='world')updCam();drawWorld()}}
   drawTrans();if(mode!=='title')updHud();
   updOverlays(dt);
   if(mode==='pack'&&packTab==='map'&&Math.floor(time*3)!==Math.floor((time-dt)*3))drawMap();
